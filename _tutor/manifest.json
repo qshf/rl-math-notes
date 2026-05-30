@@ -1,0 +1,773 @@
+{
+  "pdf": "/Users/qshf/Downloads/强化学习的数学原理.pdf",
+  "page_count": 281,
+  "n_chapters": 10,
+  "n_appendices": 4,
+  "entries": [
+    {
+      "chapter": 1,
+      "kind": "chapter",
+      "title": "Basic Concepts",
+      "norm_title": "basic concepts",
+      "is_section": false,
+      "start_page": 14,
+      "end_page": 14
+    },
+    {
+      "chapter": 1,
+      "kind": "section",
+      "title": "A grid world example",
+      "norm_title": "grid world example",
+      "is_section": true,
+      "start_page": 14,
+      "end_page": 14
+    },
+    {
+      "chapter": 1,
+      "kind": "section",
+      "title": "State and action",
+      "norm_title": "state and action",
+      "is_section": true,
+      "start_page": 15,
+      "end_page": 15
+    },
+    {
+      "chapter": 1,
+      "kind": "section",
+      "title": "State transition",
+      "norm_title": "state transition",
+      "is_section": true,
+      "start_page": 15,
+      "end_page": 16
+    },
+    {
+      "chapter": 1,
+      "kind": "section",
+      "title": "Policy",
+      "norm_title": "policy",
+      "is_section": true,
+      "start_page": 17,
+      "end_page": 18
+    },
+    {
+      "chapter": 1,
+      "kind": "section",
+      "title": "Reward",
+      "norm_title": "reward",
+      "is_section": true,
+      "start_page": 19,
+      "end_page": 20
+    },
+    {
+      "chapter": 1,
+      "kind": "section",
+      "title": "Trajectories, returns, and episodes",
+      "norm_title": "trajectories returns and episodes",
+      "is_section": true,
+      "start_page": 21,
+      "end_page": 22
+    },
+    {
+      "chapter": 1,
+      "kind": "section",
+      "title": "Markov decision processes",
+      "norm_title": "markov decision processes",
+      "is_section": true,
+      "start_page": 23,
+      "end_page": 24
+    },
+    {
+      "chapter": 1,
+      "kind": "section",
+      "title": "Summary",
+      "norm_title": "summary",
+      "is_section": true,
+      "start_page": 25,
+      "end_page": 25
+    },
+    {
+      "chapter": 1,
+      "kind": "section",
+      "title": "Q&A",
+      "norm_title": "q a",
+      "is_section": true,
+      "start_page": 25,
+      "end_page": 26
+    },
+    {
+      "chapter": 2,
+      "kind": "chapter",
+      "title": "State Values and Bellman Equation",
+      "norm_title": "state values and bellman equation",
+      "is_section": false,
+      "start_page": 27,
+      "end_page": 27
+    },
+    {
+      "chapter": 2,
+      "kind": "section",
+      "title": "Motivating example 1: Why are returns important?",
+      "norm_title": "motivating example 1 why are returns important",
+      "is_section": true,
+      "start_page": 28,
+      "end_page": 28
+    },
+    {
+      "chapter": 2,
+      "kind": "section",
+      "title": "Motivating example 2: How to calculate returns?",
+      "norm_title": "motivating example 2 how to calculate returns",
+      "is_section": true,
+      "start_page": 29,
+      "end_page": 30
+    },
+    {
+      "chapter": 2,
+      "kind": "section",
+      "title": "State values",
+      "norm_title": "state values",
+      "is_section": true,
+      "start_page": 31,
+      "end_page": 31
+    },
+    {
+      "chapter": 2,
+      "kind": "section",
+      "title": "Bellman equation",
+      "norm_title": "bellman equation",
+      "is_section": true,
+      "start_page": 32,
+      "end_page": 33
+    },
+    {
+      "chapter": 2,
+      "kind": "section",
+      "title": "Examples for illustrating the Bellman equation",
+      "norm_title": "examples for illustrating the bellman equation",
+      "is_section": true,
+      "start_page": 34,
+      "end_page": 36
+    },
+    {
+      "chapter": 2,
+      "kind": "section",
+      "title": "Matrix-vector form of the Bellman equation",
+      "norm_title": "matrix vector form of the bellman equation",
+      "is_section": true,
+      "start_page": 37,
+      "end_page": 38
+    },
+    {
+      "chapter": 2,
+      "kind": "section",
+      "title": "Solving state values from the Bellman equation",
+      "norm_title": "solving state values from the bellman equation",
+      "is_section": true,
+      "start_page": 39,
+      "end_page": 41
+    },
+    {
+      "chapter": 2,
+      "kind": "section",
+      "title": "From state value to action value",
+      "norm_title": "from state value to action value",
+      "is_section": true,
+      "start_page": 42,
+      "end_page": 44
+    },
+    {
+      "chapter": 2,
+      "kind": "section",
+      "title": "Summary",
+      "norm_title": "summary",
+      "is_section": true,
+      "start_page": 45,
+      "end_page": 45
+    },
+    {
+      "chapter": 2,
+      "kind": "section",
+      "title": "Q&A",
+      "norm_title": "q a",
+      "is_section": true,
+      "start_page": 45,
+      "end_page": 46
+    },
+    {
+      "chapter": 3,
+      "kind": "chapter",
+      "title": "Optimal State Values and Bellman Optimality Equation",
+      "norm_title": "optimal state values and bellman optimality equation",
+      "is_section": false,
+      "start_page": 47,
+      "end_page": 47
+    },
+    {
+      "chapter": 3,
+      "kind": "section",
+      "title": "Motivating example: How to improve policies?",
+      "norm_title": "motivating example how to improve policies",
+      "is_section": true,
+      "start_page": 48,
+      "end_page": 48
+    },
+    {
+      "chapter": 3,
+      "kind": "section",
+      "title": "Optimal state values and optimal policies",
+      "norm_title": "optimal state values and optimal policies",
+      "is_section": true,
+      "start_page": 49,
+      "end_page": 49
+    },
+    {
+      "chapter": 3,
+      "kind": "section",
+      "title": "Bellman optimality equation",
+      "norm_title": "bellman optimality equation",
+      "is_section": true,
+      "start_page": 50,
+      "end_page": 56
+    },
+    {
+      "chapter": 3,
+      "kind": "section",
+      "title": "Solving an optimal policy from the BOE",
+      "norm_title": "solving an optimal policy from the boe",
+      "is_section": true,
+      "start_page": 57,
+      "end_page": 59
+    },
+    {
+      "chapter": 3,
+      "kind": "section",
+      "title": "Factors that influence optimal policies",
+      "norm_title": "factors that influence optimal policies",
+      "is_section": true,
+      "start_page": 60,
+      "end_page": 64
+    },
+    {
+      "chapter": 3,
+      "kind": "section",
+      "title": "Summary",
+      "norm_title": "summary",
+      "is_section": true,
+      "start_page": 65,
+      "end_page": 65
+    },
+    {
+      "chapter": 3,
+      "kind": "section",
+      "title": "Q&A",
+      "norm_title": "q a",
+      "is_section": true,
+      "start_page": 65,
+      "end_page": 67
+    },
+    {
+      "chapter": 4,
+      "kind": "chapter",
+      "title": "Value Iteration and Policy Iteration",
+      "norm_title": "value iteration and policy iteration",
+      "is_section": false,
+      "start_page": 68,
+      "end_page": 68
+    },
+    {
+      "chapter": 4,
+      "kind": "section",
+      "title": "Value iteration",
+      "norm_title": "value iteration",
+      "is_section": true,
+      "start_page": 69,
+      "end_page": 72
+    },
+    {
+      "chapter": 4,
+      "kind": "section",
+      "title": "Policy iteration",
+      "norm_title": "policy iteration",
+      "is_section": true,
+      "start_page": 73,
+      "end_page": 78
+    },
+    {
+      "chapter": 4,
+      "kind": "section",
+      "title": "Truncated policy iteration",
+      "norm_title": "truncated policy iteration",
+      "is_section": true,
+      "start_page": 79,
+      "end_page": 84
+    },
+    {
+      "chapter": 4,
+      "kind": "section",
+      "title": "Summary",
+      "norm_title": "summary",
+      "is_section": true,
+      "start_page": 85,
+      "end_page": 85
+    },
+    {
+      "chapter": 4,
+      "kind": "section",
+      "title": "Q&A",
+      "norm_title": "q a",
+      "is_section": true,
+      "start_page": 85,
+      "end_page": 87
+    },
+    {
+      "chapter": 5,
+      "kind": "chapter",
+      "title": "Monte Carlo Methods",
+      "norm_title": "monte carlo methods",
+      "is_section": false,
+      "start_page": 88,
+      "end_page": 88
+    },
+    {
+      "chapter": 5,
+      "kind": "section",
+      "title": "Motivating example: Mean estimation",
+      "norm_title": "motivating example mean estimation",
+      "is_section": true,
+      "start_page": 89,
+      "end_page": 90
+    },
+    {
+      "chapter": 5,
+      "kind": "section",
+      "title": "MC Basic: The simplest MC-based algorithm",
+      "norm_title": "mc basic the simplest mc based algorithm",
+      "is_section": true,
+      "start_page": 91,
+      "end_page": 96
+    },
+    {
+      "chapter": 5,
+      "kind": "section",
+      "title": "MC Exploring Starts",
+      "norm_title": "mc exploring starts",
+      "is_section": true,
+      "start_page": 97,
+      "end_page": 99
+    },
+    {
+      "chapter": 5,
+      "kind": "section",
+      "title": "MC -Greedy: Learning without exploring starts",
+      "norm_title": "mc greedy learning without exploring starts",
+      "is_section": true,
+      "start_page": 100,
+      "end_page": 101
+    },
+    {
+      "chapter": 5,
+      "kind": "section",
+      "title": "Exploration and exploitation of -greedy policies",
+      "norm_title": "exploration and exploitation of greedy policies",
+      "is_section": true,
+      "start_page": 102,
+      "end_page": 107
+    },
+    {
+      "chapter": 5,
+      "kind": "section",
+      "title": "Summary",
+      "norm_title": "summary",
+      "is_section": true,
+      "start_page": 108,
+      "end_page": 108
+    },
+    {
+      "chapter": 5,
+      "kind": "section",
+      "title": "Q&A",
+      "norm_title": "q a",
+      "is_section": true,
+      "start_page": 108,
+      "end_page": 110
+    },
+    {
+      "chapter": 6,
+      "kind": "chapter",
+      "title": "Stochastic Approximation",
+      "norm_title": "stochastic approximation",
+      "is_section": false,
+      "start_page": 111,
+      "end_page": 111
+    },
+    {
+      "chapter": 6,
+      "kind": "section",
+      "title": "Motivating example: Mean estimation",
+      "norm_title": "motivating example mean estimation",
+      "is_section": true,
+      "start_page": 112,
+      "end_page": 112
+    },
+    {
+      "chapter": 6,
+      "kind": "section",
+      "title": "Robbins-Monro algorithm",
+      "norm_title": "robbins monro algorithm",
+      "is_section": true,
+      "start_page": 113,
+      "end_page": 118
+    },
+    {
+      "chapter": 6,
+      "kind": "section",
+      "title": "Dvoretzky's convergence theorem",
+      "norm_title": "dvoretzky s convergence theorem",
+      "is_section": true,
+      "start_page": 119,
+      "end_page": 123
+    },
+    {
+      "chapter": 6,
+      "kind": "section",
+      "title": "Stochastic gradient descent",
+      "norm_title": "stochastic gradient descent",
+      "is_section": true,
+      "start_page": 124,
+      "end_page": 132
+    },
+    {
+      "chapter": 6,
+      "kind": "section",
+      "title": "Summary",
+      "norm_title": "summary",
+      "is_section": true,
+      "start_page": 133,
+      "end_page": 133
+    },
+    {
+      "chapter": 6,
+      "kind": "section",
+      "title": "Q&A",
+      "norm_title": "q a",
+      "is_section": true,
+      "start_page": 133,
+      "end_page": 134
+    },
+    {
+      "chapter": 7,
+      "kind": "chapter",
+      "title": "Temporal-Difference Methods",
+      "norm_title": "temporal difference methods",
+      "is_section": false,
+      "start_page": 135,
+      "end_page": 135
+    },
+    {
+      "chapter": 7,
+      "kind": "section",
+      "title": "TD learning of state values",
+      "norm_title": "td learning of state values",
+      "is_section": true,
+      "start_page": 136,
+      "end_page": 141
+    },
+    {
+      "chapter": 7,
+      "kind": "section",
+      "title": "TD learning of action values: Sarsa",
+      "norm_title": "td learning of action values sarsa",
+      "is_section": true,
+      "start_page": 142,
+      "end_page": 146
+    },
+    {
+      "chapter": 7,
+      "kind": "section",
+      "title": "TD learning of action values: n-step Sarsa",
+      "norm_title": "td learning of action values n step sarsa",
+      "is_section": true,
+      "start_page": 147,
+      "end_page": 148
+    },
+    {
+      "chapter": 7,
+      "kind": "section",
+      "title": "TD learning of optimal action values: Q-learning",
+      "norm_title": "td learning of optimal action values q learning",
+      "is_section": true,
+      "start_page": 149,
+      "end_page": 154
+    },
+    {
+      "chapter": 7,
+      "kind": "section",
+      "title": "A unified viewpoint",
+      "norm_title": "unified viewpoint",
+      "is_section": true,
+      "start_page": 155,
+      "end_page": 157
+    },
+    {
+      "chapter": 7,
+      "kind": "section",
+      "title": "Summary",
+      "norm_title": "summary",
+      "is_section": true,
+      "start_page": 158,
+      "end_page": 158
+    },
+    {
+      "chapter": 7,
+      "kind": "section",
+      "title": "Q&A",
+      "norm_title": "q a",
+      "is_section": true,
+      "start_page": 159,
+      "end_page": 160
+    },
+    {
+      "chapter": 8,
+      "kind": "chapter",
+      "title": "Value Function Approximation",
+      "norm_title": "value function approximation",
+      "is_section": false,
+      "start_page": 161,
+      "end_page": 161
+    },
+    {
+      "chapter": 8,
+      "kind": "section",
+      "title": "Value representation: From table to function",
+      "norm_title": "value representation from table to function",
+      "is_section": true,
+      "start_page": 161,
+      "end_page": 164
+    },
+    {
+      "chapter": 8,
+      "kind": "section",
+      "title": "TD learning of state values based on function approximation",
+      "norm_title": "td learning of state values based on function approximation",
+      "is_section": true,
+      "start_page": 165,
+      "end_page": 187
+    },
+    {
+      "chapter": 8,
+      "kind": "section",
+      "title": "TD learning of action values based on function approximation",
+      "norm_title": "td learning of action values based on function approximation",
+      "is_section": true,
+      "start_page": 188,
+      "end_page": 190
+    },
+    {
+      "chapter": 8,
+      "kind": "section",
+      "title": "Deep Q-learning",
+      "norm_title": "deep q learning",
+      "is_section": true,
+      "start_page": 191,
+      "end_page": 195
+    },
+    {
+      "chapter": 8,
+      "kind": "section",
+      "title": "Summary",
+      "norm_title": "summary",
+      "is_section": true,
+      "start_page": 196,
+      "end_page": 196
+    },
+    {
+      "chapter": 8,
+      "kind": "section",
+      "title": "Q&A",
+      "norm_title": "q a",
+      "is_section": true,
+      "start_page": 197,
+      "end_page": 199
+    },
+    {
+      "chapter": 9,
+      "kind": "chapter",
+      "title": "Policy Gradient Methods",
+      "norm_title": "policy gradient methods",
+      "is_section": false,
+      "start_page": 200,
+      "end_page": 200
+    },
+    {
+      "chapter": 9,
+      "kind": "section",
+      "title": "Policy representation: From table to function",
+      "norm_title": "policy representation from table to function",
+      "is_section": true,
+      "start_page": 201,
+      "end_page": 201
+    },
+    {
+      "chapter": 9,
+      "kind": "section",
+      "title": "Metrics for defining optimal policies",
+      "norm_title": "metrics for defining optimal policies",
+      "is_section": true,
+      "start_page": 202,
+      "end_page": 206
+    },
+    {
+      "chapter": 9,
+      "kind": "section",
+      "title": "Gradients of the metrics",
+      "norm_title": "gradients of the metrics",
+      "is_section": true,
+      "start_page": 207,
+      "end_page": 218
+    },
+    {
+      "chapter": 9,
+      "kind": "section",
+      "title": "Monte Carlo policy gradient (REINFORCE)",
+      "norm_title": "monte carlo policy gradient reinforce",
+      "is_section": true,
+      "start_page": 219,
+      "end_page": 220
+    },
+    {
+      "chapter": 9,
+      "kind": "section",
+      "title": "Summary",
+      "norm_title": "summary",
+      "is_section": true,
+      "start_page": 221,
+      "end_page": 221
+    },
+    {
+      "chapter": 9,
+      "kind": "section",
+      "title": "Q&A",
+      "norm_title": "q a",
+      "is_section": true,
+      "start_page": 222,
+      "end_page": 223
+    },
+    {
+      "chapter": 10,
+      "kind": "chapter",
+      "title": "Actor-Critic Methods",
+      "norm_title": "actor critic methods",
+      "is_section": false,
+      "start_page": 224,
+      "end_page": 224
+    },
+    {
+      "chapter": 10,
+      "kind": "section",
+      "title": "The simplest actor-critic algorithm (QAC)",
+      "norm_title": "the simplest actor critic algorithm qac",
+      "is_section": true,
+      "start_page": 224,
+      "end_page": 224
+    },
+    {
+      "chapter": 10,
+      "kind": "section",
+      "title": "Advantage actor-critic (A2C)",
+      "norm_title": "advantage actor critic a2c",
+      "is_section": true,
+      "start_page": 225,
+      "end_page": 229
+    },
+    {
+      "chapter": 10,
+      "kind": "section",
+      "title": "Off-policy actor-critic",
+      "norm_title": "off policy actor critic",
+      "is_section": true,
+      "start_page": 230,
+      "end_page": 234
+    },
+    {
+      "chapter": 10,
+      "kind": "section",
+      "title": "Deterministic actor-critic",
+      "norm_title": "deterministic actor critic",
+      "is_section": true,
+      "start_page": 235,
+      "end_page": 243
+    },
+    {
+      "chapter": 10,
+      "kind": "section",
+      "title": "Summary",
+      "norm_title": "summary",
+      "is_section": true,
+      "start_page": 244,
+      "end_page": 244
+    },
+    {
+      "chapter": 10,
+      "kind": "section",
+      "title": "Q&A",
+      "norm_title": "q a",
+      "is_section": true,
+      "start_page": 245,
+      "end_page": 245
+    },
+    {
+      "chapter": "A",
+      "kind": "appendix",
+      "title": "Preliminaries for Probability Theory",
+      "norm_title": "preliminaries for probability theory",
+      "is_section": false,
+      "start_page": 246,
+      "end_page": 250
+    },
+    {
+      "chapter": "B",
+      "kind": "appendix",
+      "title": "Measure-Theoretic Probability Theory",
+      "norm_title": "measure theoretic probability theory",
+      "is_section": false,
+      "start_page": 251,
+      "end_page": 257
+    },
+    {
+      "chapter": "C",
+      "kind": "appendix",
+      "title": "Convergence of Sequences",
+      "norm_title": "convergence of sequences",
+      "is_section": false,
+      "start_page": 258,
+      "end_page": 258
+    },
+    {
+      "chapter": "C",
+      "kind": "section",
+      "title": "Convergence of deterministic sequences",
+      "norm_title": "convergence of deterministic sequences",
+      "is_section": true,
+      "start_page": 258,
+      "end_page": 260
+    },
+    {
+      "chapter": "C",
+      "kind": "section",
+      "title": "Convergence of stochastic sequences",
+      "norm_title": "convergence of stochastic sequences",
+      "is_section": true,
+      "start_page": 261,
+      "end_page": 264
+    },
+    {
+      "chapter": "D",
+      "kind": "appendix",
+      "title": "Preliminaries for Gradient Descent",
+      "norm_title": "preliminaries for gradient descent",
+      "is_section": false,
+      "start_page": 265,
+      "end_page": 268
+    }
+  ]
+}

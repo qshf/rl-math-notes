@@ -1,0 +1,42 @@
+# macOS
+.DS_Store
+._*
+
+# Obsidian local workspace
+.obsidian/workspace*
+.obsidian/cache/
+.obsidian/plugins/
+
+# Editor and IDE local files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Python cache and virtual environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Node dependencies and build output
+node_modules/
+dist/
+build/
+.next/
+.vite/
+
+# Tutor/runtime state
+_tutor/progress.json
+_tutor/.DS_Store
+
+.obsidian
+raw
