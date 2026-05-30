@@ -603,6 +603,157 @@ $$\boxed{q_\pi=\tilde r+\gamma P\Pi q_\pi}\tag{2.15}$$
 - $P$：转移矩阵，**行按 $(s,a)$、列按 $s'$**，$[P]_{(s,a),s'}=p(s'\mid s,a)$；
 - $\Pi$：**块对角矩阵**，每块是 $1\times|\mathcal{A}|$ 行向量，$\Pi_{s',(s',a')}=\pi(a'\mid s')$，其余为 0。
 
+#### 小例子：把 $q_\pi=\tilde r+\gamma P\Pi q_\pi$ 展开
+
+假设只有两个状态、每个状态两个动作：
+
+$$\mathcal S=\{s_1,s_2\},\quad \mathcal A=\{a_1,a_2\}.$$
+
+动作值向量按状态-动作对排列：
+
+$$
+q_\pi=
+\begin{bmatrix}
+q_\pi(s_1,a_1)\\
+q_\pi(s_1,a_2)\\
+q_\pi(s_2,a_1)\\
+q_\pi(s_2,a_2)
+\end{bmatrix},\quad
+\tilde r=
+\begin{bmatrix}
+\tilde r(s_1,a_1)\\
+\tilde r(s_1,a_2)\\
+\tilde r(s_2,a_1)\\
+\tilde r(s_2,a_2)
+\end{bmatrix}.
+$$
+
+假设策略为：
+
+$$
+\pi(\cdot\mid s_1)=[0.8,0.2],\quad
+\pi(\cdot\mid s_2)=[0.4,0.6].
+$$
+
+那么 $\Pi$ 是：
+
+$$
+\Pi=
+\begin{bmatrix}
+0.8 & 0.2 & 0 & 0\\
+0 & 0 & 0.4 & 0.6
+\end{bmatrix}.
+$$
+
+注意它的**行对应状态** $s_1,s_2$，列对应状态-动作对
+$(s_1,a_1),(s_1,a_2),(s_2,a_1),(s_2,a_2)$。所以
+
+$$
+\Pi q_\pi=
+\begin{bmatrix}
+0.8q_\pi(s_1,a_1)+0.2q_\pi(s_1,a_2)\\
+0.4q_\pi(s_2,a_1)+0.6q_\pi(s_2,a_2)
+\end{bmatrix}
+=
+\begin{bmatrix}
+v_\pi(s_1)\\
+v_\pi(s_2)
+\end{bmatrix}.
+$$
+
+也就是说，$\Pi$ 的作用是：**把每个状态下各动作的 $q$ 值，按策略概率加权平均，变成该状态的 $v$ 值**。
+
+再假设转移矩阵为：
+
+$$
+P=
+\begin{bmatrix}
+0.7 & 0.3\\
+0.2 & 0.8\\
+0.5 & 0.5\\
+0.1 & 0.9
+\end{bmatrix}.
+$$
+
+这里 $P$ 的每一行对应一个当前状态-动作对，每一列对应一个下一状态。例如第一行表示：
+
+$$p(s_1\mid s_1,a_1)=0.7,\quad p(s_2\mid s_1,a_1)=0.3.$$
+
+于是
+
+$$
+P\Pi q_\pi
+=
+P
+\begin{bmatrix}
+v_\pi(s_1)\\
+v_\pi(s_2)
+\end{bmatrix}
+=
+\begin{bmatrix}
+0.7v_\pi(s_1)+0.3v_\pi(s_2)\\
+0.2v_\pi(s_1)+0.8v_\pi(s_2)\\
+0.5v_\pi(s_1)+0.5v_\pi(s_2)\\
+0.1v_\pi(s_1)+0.9v_\pi(s_2)
+\end{bmatrix}.
+$$
+
+代回矩阵式：
+
+$$q_\pi=\tilde r+\gamma P\Pi q_\pi,$$
+
+就得到四个标量方程：
+
+$$
+q_\pi(s_1,a_1)
+=\tilde r(s_1,a_1)
++\gamma[0.7v_\pi(s_1)+0.3v_\pi(s_2)],
+$$
+
+$$
+q_\pi(s_1,a_2)
+=\tilde r(s_1,a_2)
++\gamma[0.2v_\pi(s_1)+0.8v_\pi(s_2)],
+$$
+
+$$
+q_\pi(s_2,a_1)
+=\tilde r(s_2,a_1)
++\gamma[0.5v_\pi(s_1)+0.5v_\pi(s_2)],
+$$
+
+$$
+q_\pi(s_2,a_2)
+=\tilde r(s_2,a_2)
++\gamma[0.1v_\pi(s_1)+0.9v_\pi(s_2)].
+$$
+
+如果把 $v_\pi$ 也继续换成 $q_\pi$：
+
+$$v_\pi(s_1)=0.8q_\pi(s_1,a_1)+0.2q_\pi(s_1,a_2),$$
+
+$$v_\pi(s_2)=0.4q_\pi(s_2,a_1)+0.6q_\pi(s_2,a_2),$$
+
+那么第一条方程完全展开就是：
+
+$$
+\begin{aligned}
+q_\pi(s_1,a_1)
+=&\ \tilde r(s_1,a_1)\\
+&+\gamma\{0.7[0.8q_\pi(s_1,a_1)+0.2q_\pi(s_1,a_2)]\\
+&\quad+0.3[0.4q_\pi(s_2,a_1)+0.6q_\pi(s_2,a_2)]\}.
+\end{aligned}
+$$
+
+这说明矩阵式背后就是一句话：
+
+$$
+\text{当前动作值}
+=
+\text{即时奖励}
++\gamma\times\text{下一状态价值的期望}.
+$$
+
 ⚠️ **与状态值形式 (2.10) 的关键区别**：这里 $\tilde r,P$ **只由系统模型决定、与策略无关**，策略被单独
 塞进 $\Pi$。这种"模型与策略分离"在无模型学习里很有用——模型部分可从数据估、策略单独换。(2.15)
 同样是**压缩映射（contraction mapping）**，有唯一解、可迭代求解。
