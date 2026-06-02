@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit(~/.claude/skills/rl-book-tutor/**)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(s.get\\('order'\\), s.get\\('section'\\), s.get\\('section_id'\\), s.get\\('start_page'\\), s.get\\('end_page'\\), s.get\\('title',''\\)\\) for s in \\(d if isinstance\\(d,list\\) else d.get\\('sections',[]\\)\\)]\")"
+    ]
+  }
+}
