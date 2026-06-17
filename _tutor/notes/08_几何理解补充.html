@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TD-Linear 深度解析与可交互 3D 证明</title>
+    
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$']],
+                displayMath: [['$$', '$$']]
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #2c3e50;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 30px 20px;
+            background-color: #f4f7f6;
+        }
+        h1 { border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        h2 { color: #2980b9; margin-top: 30px; }
+        .card {
+            background: #fff;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+        .proof-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #e74c3c;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.95em;
+        }
+        #plot-container {
+            width: 100%;
+            height: 600px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .tip {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-top: -15px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>TD-Linear：投影误差推导与 3D 可交互演示</h1>
+
+    <div class="card">
+        <h2>1. 可交互 3D 几何空间演示</h2>
+        <p>下方是一个真实的 3D 坐标系。<strong>你可以使用鼠标左键拖拽旋转视角，右键平移，滚轮缩放。</strong></p>
+        <p>请仔细观察蓝色平面（特征空间）与上方悬空的红色向量之间的关系。绿色向量就是红色向量被矩阵 $M$ 垂直（在加权意义下）投射到桌面上的影子。</p>
+        
+        <div id="plot-container"></div>
+        <p class="tip">💡 提示：按住鼠标左键拖拽可全方位查看“飞出空间”与“投影拍回”的立体几何关系</p>
+    </div>
+
+    <div class="card">
+        <h2>2. 严密数学证明：投影矩阵 $M$ 的推导</h2>
+        <p>为什么投影矩阵的形式一定是 $M = \Phi(\Phi^T D \Phi)^{-1} \Phi^T D$？这源于加权最小二乘法（WLS）的解析解。</p>
+        
+        <div class="proof-box">
+            <p><strong>目标：</strong> 寻找一个权重 $w$，使得特征空间的向量 $\Phi w$ 距离目标向量 $v$ 最近（在 $D$-范数下）：</p>
+            $$ \min_{w} J(w) = \|\Phi w - v\|_D^2 = (\Phi w - v)^T D (\Phi w - v) $$
+            
+            <p><strong>求导：</strong> 对 $w$ 求梯度并令其为 0。因为 $D$ 是对称矩阵（状态概率对角阵）：</p>
+            $$ \nabla_w J(w) = 2 \Phi^T D (\Phi w - v) = 0 $$
+            
+            <p><strong>化简并求解 $w^*$：</strong> 这就是著名的加权正规方程（Weighted Normal Equation）：</p>
+            $$ \Phi^T D \Phi w = \Phi^T D v $$
+            $$ w^* = (\Phi^T D \Phi)^{-1} \Phi^T D v $$
+            
+            <p><strong>得出投影算子 $M$：</strong> 将最优的 $w^*$ 代回估计方程 $\hat{v} = \Phi w^*$：</p>
+            $$ \hat{v} = \underbrace{\Phi (\Phi^T D \Phi)^{-1} \Phi^T D}_{M} v = Mv $$
+            <p>这就严密证明了，任何向量 $v$ 被最优逼近后，等同于左乘了矩阵 $M$。</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>3. 严密数学证明：TD-Linear 为什么收敛于此？</h2>
+        <p>初学者最大的困惑是：算法代码里从来没写过矩阵 $M$，也没求过逆矩阵，为什么 TD 算法运行到最后，竟然自动实现了这套复杂的投影逻辑？</p>
+        
+        <div class="proof-box">
+            <p><strong>步骤 1：写出 TD-Linear 的单步更新公式</strong></p>
+            $$ w_{t+1} \leftarrow w_t + \alpha \Big( R_{t+1} + \gamma \Phi_{t+1}^T w_t - \Phi_t^T w_t \Big) \Phi_t $$
+            
+            <p><strong>步骤 2：求期望更新量（Expected Update）</strong></p>
+            <p>当算法收敛时，参数不再期望移动，即期望更新量为 0。我们将离散采样的期望展开为矩阵形式（$D$ 为状态分布，$P_\pi$ 为转移矩阵）：</p>
+            $$ \mathbb{E}[\Delta w] = \Phi^T D \Big( r + \gamma P_\pi \Phi w - \Phi w \Big) = 0 $$
+            <p>请注意括号里的内容！$r + \gamma P_\pi \Phi w$ 正是贝尔曼算子 $T_\pi(\Phi w)$：</p>
+            $$ \Phi^T D \Big( T_\pi(\Phi w) - \Phi w \Big) = 0 $$
+            
+            <p><strong>步骤 3：见证奇迹的变形</strong></p>
+            <p>我们在上面这个期望为 0 的等式两边，同时左乘一个矩阵 $\Phi(\Phi^T D \Phi)^{-1}$：</p>
+            $$ \Phi(\Phi^T D \Phi)^{-1} \Phi^T D \Big( T_\pi(\Phi w) - \Phi w \Big) = 0 $$
+            <p>认出来了吗？最前面的那一长串，精确地就是投影矩阵 $M$！于是式子变成了：</p>
+            $$ M \Big( T_\pi(\Phi w) - \Phi w \Big) = 0 $$
+            $$ M T_\pi(\Phi w) - M \Phi w = 0 $$
+            
+            <p>因为 $\Phi w$ 本来就在特征空间里，对它再进行一次投影 $M$ 还是它自己（$M \Phi w = \Phi w$）。代入最终得到：</p>
+            $$ M T_\pi(\Phi w) = \Phi w $$
+            
+            <p><strong>结论：</strong> TD 算法通过简单的时序差分更新，在数学期望上默默寻找的，正是 <strong>当前估计值等于目标投影值</strong> 的不动点！它在隐式地最小化投影贝尔曼误差 $J_{PBE}$。</p>
+        </div>
+    </div>
+
+    <script>
+        // 定义三维空间向量 (为了视觉效果，数值设定得较为直观)
+        const v_phi_w = {x: 3, y: 4, z: 0};                // 当前估计 (平躺在桌面上)
+        const v_T_phi_w = {x: 6, y: 7, z: 5};              // 更新后目标 (飞出桌面悬空)
+        const v_M_T_phi_w = {x: 6, y: 7, z: 0};            // 投影影子 (强制拍回桌面)
+
+        // 1. 绘制平面 (特征空间 Phi w)
+        var trace_plane = {
+            x: [-2, 10, 10, -2],
+            y: [-2, -2, 10, 10],
+            z: [0, 0, 0, 0],
+            type: 'mesh3d',
+            opacity: 0.15,
+            color: '#3498db',
+            name: '特征空间 (桌面)'
+        };
+
+        // 2. 绘制当前估计向量 Phi w (橘色)
+        var trace_phi_w = {
+            x: [0, v_phi_w.x], y: [0, v_phi_w.y], z: [0, v_phi_w.z],
+            type: 'scatter3d', mode: 'lines+markers',
+            line: {width: 6, color: '#f39c12'},
+            marker: {size: [0, 6], color: '#f39c12'},
+            name: '当前估计 Φw'
+        };
+
+        // 3. 绘制悬空的贝尔曼更新目标 T_pi(Phi w) (红色)
+        var trace_T = {
+            x: [0, v_T_phi_w.x], y: [0, v_T_phi_w.y], z: [0, v_T_phi_w.z],
+            type: 'scatter3d', mode: 'lines+markers',
+            line: {width: 6, color: '#e74c3c'},
+            marker: {size: [0, 6], color: '#e74c3c'},
+            name: '贝尔曼更新 T_π(Φw)'
+        };
+
+        // 4. 绘制投影影子 M T_pi(Phi w) (绿色)
+        var trace_M_T = {
+            x: [0, v_M_T_phi_w.x], y: [0, v_M_T_phi_w.y], z: [0, v_M_T_phi_w.z],
+            type: 'scatter3d', mode: 'lines+markers',
+            line: {width: 6, color: '#2ecc71'},
+            marker: {size: [0, 6], color: '#2ecc71'},
+            name: '投影目标 M T_π(Φw)'
+        };
+
+        // 5. 绘制向下投影的虚线 (表示投影动作)
+        var trace_projection_line = {
+            x: [v_T_phi_w.x, v_M_T_phi_w.x], 
+            y: [v_T_phi_w.y, v_M_T_phi_w.y], 
+            z: [v_T_phi_w.z, v_M_T_phi_w.z],
+            type: 'scatter3d', mode: 'lines',
+            line: {width: 4, color: '#95a5a6', dash: 'dash'},
+            name: '投影算子 M 的作用'
+        };
+
+        // 6. 绘制投影贝尔曼误差连线 (连接当前估计和投影目标)
+        var trace_PBE = {
+            x: [v_phi_w.x, v_M_T_phi_w.x], 
+            y: [v_phi_w.y, v_M_T_phi_w.y], 
+            z: [v_phi_w.z, v_M_T_phi_w.z],
+            type: 'scatter3d', mode: 'lines',
+            line: {width: 5, color: '#9b59b6', dash: 'dot'},
+            name: '投影贝尔曼误差 J_PBE'
+        };
+
+        var layout = {
+            margin: {l: 0, r: 0, b: 0, t: 0},
+            scene: {
+                xaxis: {title: '特征轴 1', range: [-1, 9]},
+                yaxis: {title: '特征轴 2', range: [-1, 9]},
+                zaxis: {title: 'Z轴 (无法表示的空间)', range: [-1, 6]},
+                camera: {
+                    eye: {x: 1.5, y: -1.5, z: 0.8} // 默认倾斜视角
+                }
+            },
+            legend: { x: 0.7, y: 0.9, backgroundcolor: 'rgba(255,255,255,0.8)' }
+        };
+
+        var data = [trace_plane, trace_phi_w, trace_T, trace_M_T, trace_projection_line, trace_PBE];
+
+        Plotly.newPlot('plot-container', data, layout, {responsive: true});
+    </script>
+
+</body>
+</html>
