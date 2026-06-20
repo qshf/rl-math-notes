@@ -102,10 +102,112 @@
         <div class="proof-box">
             <p><strong>步骤 1：写出 TD-Linear 的单步更新公式</strong></p>
             $$ w_{t+1} \leftarrow w_t + \alpha \Big( R_{t+1} + \gamma \Phi_{t+1}^T w_t - \Phi_t^T w_t \Big) \Phi_t $$
+            <p>因此这一步真正加到参数上的变化量是：</p>
+            $$
+            \Delta w_t
+            \doteq
+            w_{t+1}-w_t
+            =
+            \alpha
+            \Big(
+            R_{t+1}
+            +
+            \gamma \Phi_{t+1}^T w_t
+            -
+            \Phi_t^T w_t
+            \Big)\Phi_t.
+            $$
+            <p>如果把括号里的 TD error 记为 $\delta_t$，也可以写成：</p>
+            $$
+            \delta_t
+            \doteq
+            R_{t+1}
+            +
+            \gamma \Phi_{t+1}^T w_t
+            -
+            \Phi_t^T w_t,
+            \qquad
+            \Delta w_t=\alpha\delta_t\Phi_t.
+            $$
+            <p>后面讨论期望更新方向时，常把学习率 $\alpha$ 暂时省略，因为 $\alpha>0$ 只改变步长大小，不改变“平均往哪个方向走”；判断收敛固定点时看的是 $\mathbb E[\delta_t\Phi_t]=0$。</p>
             
             <p><strong>步骤 2：求期望更新量（Expected Update）</strong></p>
             <p>当算法收敛时，参数不再期望移动，即期望更新量为 0。我们将离散采样的期望展开为矩阵形式（$D$ 为状态分布，$P_\pi$ 为转移矩阵）：</p>
             $$ \mathbb{E}[\Delta w] = \Phi^T D \Big( r + \gamma P_\pi \Phi w - \Phi w \Big) = 0 $$
+            <p><strong>这一步在做什么？</strong> 它是把“每次采样得到的一小步 TD 更新”，改写成“对所有可能状态加权平均后的参数更新方向”。</p>
+            <p>先从单个样本看。TD-Linear 的更新量本质上是：</p>
+            $$ \Delta w \propto \delta_t \phi(s_t) $$
+            <p>其中 TD error 为：</p>
+            $$ \delta_t = R_{t+1}+\gamma \phi^T(s_{t+1})w-\phi^T(s_t)w $$
+            <p>也就是说：先看当前状态的 TD 误差有多大，再沿着当前状态的特征向量 $\phi(s_t)$ 去改参数。</p>
+
+            <p>现在把这个单样本更新对所有可能的 $s_t,s_{t+1},R_{t+1}$ 取期望。若当前状态 $s$ 出现的概率是 $d_\pi(s)$，则：</p>
+            $$
+            \mathbb{E}[\Delta w]
+            =
+            \sum_s d_\pi(s)\phi(s)
+            \left[
+            r(s)
+            +
+            \gamma\sum_{s'}P_\pi(s,s')\phi^T(s')w
+            -
+            \phi^T(s)w
+            \right].
+            $$
+            <p>这个求和式就是矩阵式的来源。括号里的三项分别对应：</p>
+            <table style="width:100%; border-collapse: collapse; margin: 15px 0;">
+                <thead>
+                    <tr>
+                        <th style="border-bottom:1px solid #ddd; text-align:left; padding:6px;">单状态表达</th>
+                        <th style="border-bottom:1px solid #ddd; text-align:left; padding:6px;">矩阵表达</th>
+                        <th style="border-bottom:1px solid #ddd; text-align:left; padding:6px;">含义</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="padding:6px;">$r(s)$</td>
+                        <td style="padding:6px;">$r$</td>
+                        <td style="padding:6px;">每个状态的一步期望奖励组成的向量</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:6px;">$\sum_{s'}P_\pi(s,s')\phi^T(s')w$</td>
+                        <td style="padding:6px;">$P_\pi\Phi w$</td>
+                        <td style="padding:6px;">从状态 $s$ 出发，下一个状态预测价值的期望</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:6px;">$\phi^T(s)w$</td>
+                        <td style="padding:6px;">$\Phi w$</td>
+                        <td style="padding:6px;">当前状态的预测价值</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:6px;">$d_\pi(s)$ 加权</td>
+                        <td style="padding:6px;">$D$</td>
+                        <td style="padding:6px;">按状态出现频率做加权平均</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:6px;">乘 $\phi(s)$ 并对 $s$ 求和</td>
+                        <td style="padding:6px;">$\Phi^T$</td>
+                        <td style="padding:6px;">把状态价值误差转换成参数更新方向</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p>所以整条式子可以按从右到左读：</p>
+            $$
+            \underbrace{r+\gamma P_\pi\Phi w-\Phi w}_{\text{所有状态上的 TD 误差向量}}
+            \xrightarrow{\;D\;}
+            \text{按状态分布加权}
+            \xrightarrow{\;\Phi^T\;}
+            \text{汇总成参数空间里的更新方向}.
+            $$
+            <p>维度也正好对上。若有 $n$ 个状态、$m$ 个特征，则：</p>
+            $$
+            \underbrace{\Phi^T}_{m\times n}
+            \underbrace{D}_{n\times n}
+            \underbrace{\Big(r+\gamma P_\pi\Phi w-\Phi w\Big)}_{n\times 1}
+            =
+            \underbrace{\mathbb{E}[\Delta w]}_{m\times 1}.
+            $$
+            <p>这里的“等于 0”不是说每一次采样更新都为 0，而是说在收敛点附近，随机更新的平均方向为 0：有的样本可能把 $w$ 往左推，有的样本可能把 $w$ 往右推，但整体期望不再推动参数系统性移动。</p>
             <p>请注意括号里的内容！$r + \gamma P_\pi \Phi w$ 正是贝尔曼算子 $T_\pi(\Phi w)$：</p>
             $$ \Phi^T D \Big( T_\pi(\Phi w) - \Phi w \Big) = 0 $$
             
@@ -120,6 +222,239 @@
             $$ M T_\pi(\Phi w) = \Phi w $$
             
             <p><strong>结论：</strong> TD 算法通过简单的时序差分更新，在数学期望上默默寻找的，正是 <strong>当前估计值等于目标投影值</strong> 的不动点！它在隐式地最小化投影贝尔曼误差 $J_{PBE}$。</p>
+
+            <p><strong>一个 2 状态数值例子：亲手算出这个固定点</strong></p>
+            <p>为了把上面的符号落到数字上，考虑只有两个状态 $s_1,s_2$，但只有一个特征，所以模型只能表示“两个状态价值相同”的向量：</p>
+            $$
+            \Phi=
+            \left[
+            \begin{array}{c}
+            1\\
+            1
+            \end{array}
+            \right],
+            \qquad
+            \Phi w=
+            \left[
+            \begin{array}{c}
+            w\\
+            w
+            \end{array}
+            \right].
+            $$
+            <p>设状态分布均匀、奖励向量和转移矩阵为：</p>
+            $$
+            D=
+            \left[
+            \begin{array}{cc}
+            0.5&0\\
+            0&0.5
+            \end{array}
+            \right],
+            \quad
+            r=
+            \left[
+            \begin{array}{c}
+            1\\
+            3
+            \end{array}
+            \right],
+            \quad
+            P_\pi=
+            \left[
+            \begin{array}{cc}
+            0&1\\
+            1&0
+            \end{array}
+            \right],
+            \quad
+            \gamma=0.5.
+            $$
+            <p>先用 TD 固定点的线性方程 $Aw=b$ 来求解。这里</p>
+            $$
+            A=\Phi^T D(I-\gamma P_\pi)\Phi,
+            \qquad
+            b=\Phi^TDr.
+            $$
+            <p>逐步算：</p>
+            $$
+            P_\pi\Phi
+            =
+            \left[
+            \begin{array}{c}
+            1\\
+            1
+            \end{array}
+            \right]
+            =
+            \Phi,
+            \qquad
+            (I-\gamma P_\pi)\Phi
+            =
+            \Phi-0.5P_\pi\Phi
+            =
+            \left[
+            \begin{array}{c}
+            0.5\\
+            0.5
+            \end{array}
+            \right].
+            $$
+            $$
+            A
+            =
+            \left[
+            \begin{array}{cc}
+            1&1
+            \end{array}
+            \right]
+            \left[
+            \begin{array}{cc}
+            0.5&0\\
+            0&0.5
+            \end{array}
+            \right]
+            \left[
+            \begin{array}{c}
+            0.5\\
+            0.5
+            \end{array}
+            \right]
+            =
+            0.5.
+            $$
+            $$
+            b
+            =
+            \Phi^TDr
+            =
+            \left[
+            \begin{array}{cc}
+            1&1
+            \end{array}
+            \right]
+            \left[
+            \begin{array}{cc}
+            0.5&0\\
+            0&0.5
+            \end{array}
+            \right]
+            \left[
+            \begin{array}{c}
+            1\\
+            3
+            \end{array}
+            \right]
+            =
+            2.
+            $$
+            <p>所以：</p>
+            $$
+            Aw=b
+            \quad\Longrightarrow\quad
+            0.5w=2
+            \quad\Longrightarrow\quad
+            w^*=4.
+            $$
+            <p>当前估计价值向量就是：</p>
+            $$
+            \Phi w^*
+            =
+            \left[
+            \begin{array}{c}
+            4\\
+            4
+            \end{array}
+            \right].
+            $$
+            <p>再从几何角度验证它确实满足 projected Bellman fixed point。先做 Bellman backup：</p>
+            $$
+            T_\pi(\Phi w^*)
+            =
+            r+\gamma P_\pi\Phi w^*
+            =
+            \left[
+            \begin{array}{c}
+            1\\
+            3
+            \end{array}
+            \right]
+            +
+            0.5
+            \left[
+            \begin{array}{c}
+            4\\
+            4
+            \end{array}
+            \right]
+            =
+            \left[
+            \begin{array}{c}
+            3\\
+            5
+            \end{array}
+            \right].
+            $$
+            <p>注意：$\left[3,5\right]^T$ 不在特征空间里，因为模型只能表示 $\left[w,w\right]^T$ 这种两个分量相同的向量。所以要投影。</p>
+            <p>这个例子里，$M$ 的作用就是取 $D$ 加权平均后，放回常数特征空间。因为 $D$ 均匀，所以：</p>
+            $$
+            M
+            \left[
+            \begin{array}{c}
+            3\\
+            5
+            \end{array}
+            \right]
+            =
+            \left[
+            \begin{array}{c}
+            (3+5)/2\\
+            (3+5)/2
+            \end{array}
+            \right]
+            =
+            \left[
+            \begin{array}{c}
+            4\\
+            4
+            \end{array}
+            \right].
+            $$
+            <p>于是：</p>
+            $$
+            MT_\pi(\Phi w^*)
+            =
+            \left[
+            \begin{array}{c}
+            4\\
+            4
+            \end{array}
+            \right]
+            =
+            \Phi w^*.
+            $$
+            <p>这说明同一个数值解 $w^*=4$ 同时满足两件事：</p>
+            <table style="width:100%; border-collapse: collapse; margin: 15px 0;">
+                <thead>
+                    <tr>
+                        <th style="border-bottom:1px solid #ddd; text-align:left; padding:6px;">角度</th>
+                        <th style="border-bottom:1px solid #ddd; text-align:left; padding:6px;">数值验证</th>
+                        <th style="border-bottom:1px solid #ddd; text-align:left; padding:6px;">意思</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="padding:6px;">TD 更新角度</td>
+                        <td style="padding:6px;">$Aw=b$，即 $0.5w=2$</td>
+                        <td style="padding:6px;">期望更新方向为 0，参数不再系统性移动</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:6px;">几何投影角度</td>
+                        <td style="padding:6px;">$MT_\pi(\Phi w^*)=\Phi w^*$</td>
+                        <td style="padding:6px;">backup 后投影回来，正好回到当前估计</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
