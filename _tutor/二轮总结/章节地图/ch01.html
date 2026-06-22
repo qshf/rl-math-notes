@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ch1 地图 · 基本概念（问题驱动）</title>
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+<style>
+  :root{
+    --bg:#f6f8fa; --card:#fff; --ink:#1f2328; --muted:#59636e;
+    --accent:#0969da; --green:#1a7f37; --amber:#9a6700; --line:#d1d9e0;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+    line-height:1.75;}
+  .wrap{max-width:860px;margin:0 auto;padding:30px 20px 90px;}
+  h1{font-size:1.55rem;margin:0 0 2px;}
+  .sub{color:var(--muted);font-size:.9rem;margin:0 0 14px;}
+  .nav{display:flex;justify-content:space-between;font-size:.88rem;margin:0 0 18px;}
+  .nav a{color:var(--accent);text-decoration:none;}
+  .nav a.disabled{color:#aeb6bf;pointer-events:none;}
+  .mainq{background:linear-gradient(0deg,#fff8c5,#fffdf0);border:1px solid #eac54f;
+    border-left:5px solid var(--amber);border-radius:8px;padding:14px 16px;margin:0 0 8px;}
+  .mainq b{color:#7a5200;}
+  .chain{margin:14px 0;}
+  .qcard{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:0 0 14px;margin:0;box-shadow:0 1px 3px rgba(31,35,40,.07);overflow:hidden;}
+  .qhead{display:flex;align-items:flex-start;gap:10px;padding:13px 16px 6px;}
+  .qnum{flex:none;background:var(--accent);color:#fff;font-size:.78rem;font-weight:700;
+    border-radius:20px;padding:3px 11px;margin-top:2px;white-space:nowrap;}
+  .qtext{font-weight:650;font-size:1.06rem;}
+  .why{padding:2px 16px 0;color:#374151;}
+  .why .lab{color:var(--muted);font-size:.8rem;font-weight:700;letter-spacing:.04em;}
+  .concl{margin:12px 16px 0;background:#eef6ff;border:1px solid #cfe4ff;border-radius:8px;
+    padding:9px 13px;}
+  .concl .lab{color:var(--accent);font-size:.78rem;font-weight:700;margin-right:6px;}
+  .bridge{display:flex;flex-direction:column;align-items:center;color:var(--muted);
+    font-size:.9rem;margin:7px 0;}
+  .bridge .ar{color:var(--accent);font-size:1.25rem;line-height:1;}
+  .bridge .nq{background:#f0f3f6;border:1px dashed #aeb6bf;border-radius:18px;
+    padding:3px 12px;margin-top:3px;}
+  .bridge .nq b{color:var(--ink);}
+  .insight{background:#dafbe1;border:1px solid #aceebb;border-left:5px solid var(--green);
+    border-radius:8px;padding:12px 15px;margin:18px 0;}
+  .insight .lab{color:var(--green);font-weight:700;}
+  h2{font-size:1.12rem;margin:30px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px;}
+  .tags .tag{display:inline-block;background:#ddf4ff;color:#0a4c8b;border-radius:18px;
+    padding:3px 11px;font-size:.84rem;margin:3px 5px 3px 0;}
+  .next{background:#fff;border:1px solid var(--line);border-left:5px solid var(--green);
+    border-radius:8px;padding:12px 15px;}
+  .next a{color:var(--accent);text-decoration:none;font-weight:600;}
+  .reflink{color:var(--accent);text-decoration:none;}
+  code{background:#eaeef2;padding:1px 5px;border-radius:4px;font-size:.9em;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Ch1 · 基本概念（Basic Concepts）</h1>
+  <div class="sub">问题驱动地图 · <a class="reflink" href="../../notes/01_chapter1-basic-concepts.md">章笔记</a> · <a class="reflink" href="../00_全书地图与问题链.md">全局地图</a></div>
+  <div class="nav">
+    <a class="disabled">← 上一章</a>
+    <a href="./ch02.html">下一章：贝尔曼方程 →</a>
+  </div>
+
+  <div class="mainq">
+    <b>本章主问题：</b>怎么把「智能体在未知环境里试错学习」这件模糊的事，翻译成一套<strong>无歧义的数学语言</strong>？<br>
+    <span style="color:#7a5200">本章不解任何问题、不讲任何算法——它只负责造词。后面九章都用这套词写成。</span>
+  </div>
+
+  <div class="chain">
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 1</span>
+        <span class="qtext">智能体「在哪、能干什么」怎么描述？</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        把处境抽象成<strong>状态</strong>、把可做的操作抽象成<strong>动作</strong>，各自收成集合。注意动作空间写成 $\mathcal A(s)$ <strong>带括号</strong>——原则上每个状态可选动作不同（角落不能向墙外走）；本书为统一才规定都用同一套 5 个动作，撞墙不是「不能选」而是「选了被罚」。</div>
+      <div class="concl"><span class="lab">结论</span> $s\in\mathcal S=\{s_1,\dots,s_n\}$，$\;a\in\mathcal A(s)$</div>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>做了动作之后，环境怎么变？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 2</span>
+        <span class="qtext">环境如何响应一个动作（可能是随机的）？</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        确定性转移可以用一张表写死，但<strong>表格只能表达确定性</strong>。现实动态几乎都带随机性（刮风把机器人吹偏），于是升级成<strong>条件概率</strong>——它能同时覆盖「确定」（概率压在一个结果上）和「随机」两种情形。这是本章<strong>第一次</strong>「表格 → 条件概率」的升级动作。</div>
+      <div class="concl"><span class="lab">结论</span> 状态转移 $p(s'\mid s,a)$；奖励发放 $p(r\mid s,a)$</div>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>智能体自己怎么决策？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 3</span>
+        <span class="qtext">智能体如何选择动作？</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        决策规则叫<strong>策略</strong>。它同样从「表格（每格写死选哪个动作）」升级到<strong>条件概率</strong>，这样能表达随机策略（探索时需要）。——这是「表格 → 条件概率」的<strong>第二次</strong>升级。智能体的终极目标，就是找一个好的 $\pi$，让它从任意起点都能到目标、不绕路不进禁区。</div>
+      <div class="concl"><span class="lab">结论</span> 策略 $\pi(a\mid s)$</div>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>怎么告诉智能体「什么是好」？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 4</span>
+        <span class="qtext">怎么定义好坏、给出反馈？</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        用<strong>奖励</strong>。奖励是你与智能体沟通的<strong>设计接口</strong>：想让它做什么，就给什么以正奖励。但关键洞见是——<strong>即时奖励 ≠ 目标</strong>。只盯单步最大奖励会变成短视的贪心，强化学习要的是长远总和。</div>
+      <div class="concl"><span class="lab">结论</span> 即时奖励 $r$，由 $p(r\mid s,a)$ 给出；它只是「一步」的反馈</div>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>一步反馈怎么攒成「长期好坏」？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 5</span>
+        <span class="qtext">如何把单步奖励累积成可比较的长期目标？</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        把一条轨迹上的奖励加起来得到<strong>回报</strong>。但无限步会发散、且「现在的奖励」该比「很久以后的」更值钱，于是引入<strong>折扣因子</strong> $\gamma\in[0,1)$：既保证级数收敛，又能调节「远视/短视」。回报让我们可以拿「两个策略哪个更好」做比较。</div>
+      <div class="concl"><span class="lab">结论</span> $G_t=R_{t+1}+\gamma R_{t+2}+\gamma^2R_{t+3}+\cdots=\sum_{k\ge0}\gamma^k R_{t+k+1}$</div>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>怎么把这些零件装进一个统一框架，还让「未来只依赖现在」？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 6</span>
+        <span class="qtext">如何统一描述整个交互动态？</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        把状态、动作、奖励、转移概率、折扣、策略全部装进一个框架 = <strong>马尔可夫决策过程 (MDP)</strong>。它的灵魂是<strong>马尔可夫性</strong>：下一步只取决于「当前状态+当前动作」，与更早的历史无关。正是这条性质，让后面所有「自洽方程」（贝尔曼方程）成为可能。</div>
+      <div class="concl"><span class="lab">结论</span> 马尔可夫性：$p(s_{t+1}\mid s_t,a_t,s_{t-1},a_{t-1},\dots)=p(s_{t+1}\mid s_t,a_t)$</div>
+    </div>
+
+  </div>
+
+  <div class="insight">
+    <span class="lab">贯穿全章的两条暗线（比任何定义都重要）</span>
+    <ol style="margin:6px 0 0;padding-left:1.2em;">
+      <li><strong>表格 → 条件概率</strong>：转移、奖励、策略都先用表格（只能表确定性），再升级成条件概率（覆盖随机）。升级动作出现 3 次。</li>
+      <li><strong>即时奖励 ≠ 长期回报</strong>：全书追求 $\mathbb E[G_t]$，不是单步 $r$。这是 RL 区别于「贪心选最大奖励」的根本。</li>
+    </ol>
+  </div>
+
+  <h2>核心概念（结论速记）</h2>
+  <div class="tags">
+    <span class="tag">$s,\mathcal S$</span><span class="tag">$a,\mathcal A(s)$</span>
+    <span class="tag">$p(s'\mid s,a)$</span><span class="tag">$\pi(a\mid s)$</span>
+    <span class="tag">$r$</span><span class="tag">$G_t$ 回报</span><span class="tag">$\gamma$ 折扣</span>
+    <span class="tag">episode 回合</span><span class="tag">MDP</span><span class="tag">马尔可夫性</span>
+  </div>
+
+  <h2>上接 / 下启</h2>
+  <p><strong>上接：</strong>无（全书起点）。</p>
+  <div class="next"><strong>下启 → <a href="./ch02.html">Ch2 贝尔曼方程</a>：</strong>
+    有了这套语言，第一个真正的问题来了——<strong>给定一个策略 $\pi$，它到底好不好？</strong>
+    为此需要用 $v_\pi$ 度量策略，并把它写成一个可解的自洽方程（贝尔曼方程）。</div>
+
+</div>
+</body>
+</html>

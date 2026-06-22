@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ch8 地图 · 值函数近似（问题驱动）</title>
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+<style>
+  :root{
+    --bg:#f6f8fa; --card:#fff; --ink:#1f2328; --muted:#59636e;
+    --accent:#0969da; --green:#1a7f37; --amber:#9a6700; --line:#d1d9e0;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+    line-height:1.75;}
+  .wrap{max-width:860px;margin:0 auto;padding:30px 20px 90px;}
+  h1{font-size:1.55rem;margin:0 0 2px;}
+  .sub{color:var(--muted);font-size:.9rem;margin:0 0 14px;}
+  .nav{display:flex;justify-content:space-between;font-size:.88rem;margin:0 0 18px;}
+  .nav a{color:var(--accent);text-decoration:none;}
+  .mainq{background:linear-gradient(0deg,#fff8c5,#fffdf0);border:1px solid #eac54f;
+    border-left:5px solid var(--amber);border-radius:8px;padding:14px 16px;margin:0 0 8px;}
+  .mainq b{color:#7a5200;}
+  .chain{margin:14px 0;}
+  .qcard{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:0 0 14px;margin:0;box-shadow:0 1px 3px rgba(31,35,40,.07);overflow:hidden;}
+  .qhead{display:flex;align-items:flex-start;gap:10px;padding:13px 16px 6px;}
+  .qnum{flex:none;background:var(--accent);color:#fff;font-size:.78rem;font-weight:700;
+    border-radius:20px;padding:3px 11px;margin-top:2px;white-space:nowrap;}
+  .qtext{font-weight:650;font-size:1.06rem;}
+  .why{padding:2px 16px 0;color:#374151;}
+  .why .lab{color:var(--muted);font-size:.8rem;font-weight:700;letter-spacing:.04em;}
+  .concl{margin:12px 16px 0;background:#eef6ff;border:1px solid #cfe4ff;border-radius:8px;
+    padding:9px 13px;}
+  .concl .lab{color:var(--accent);font-size:.78rem;font-weight:700;margin-right:6px;}
+  .bridge{display:flex;flex-direction:column;align-items:center;color:var(--muted);
+    font-size:.9rem;margin:7px 0;}
+  .bridge .ar{color:var(--accent);font-size:1.25rem;line-height:1;}
+  .bridge .nq{background:#f0f3f6;border:1px dashed #aeb6bf;border-radius:18px;
+    padding:3px 12px;margin-top:3px;}
+  .bridge .nq b{color:var(--ink);}
+  .insight{background:#dafbe1;border:1px solid #aceebb;border-left:5px solid var(--green);
+    border-radius:8px;padding:12px 15px;margin:18px 0;}
+  .insight .lab{color:var(--green);font-weight:700;}
+  h2{font-size:1.12rem;margin:30px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px;}
+  .tags .tag{display:inline-block;background:#ddf4ff;color:#0a4c8b;border-radius:18px;
+    padding:3px 11px;font-size:.84rem;margin:3px 5px 3px 0;}
+  .next{background:#fff;border:1px solid var(--line);border-left:5px solid var(--green);
+    border-radius:8px;padding:12px 15px;}
+  .next a{color:var(--accent);text-decoration:none;font-weight:600;}
+  .reflink{color:var(--accent);text-decoration:none;}
+  code{background:#eaeef2;padding:1px 5px;border-radius:4px;font-size:.9em;}
+  .formgrp{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:4px 18px 12px;margin-bottom:14px;box-shadow:0 1px 3px rgba(31,35,40,.07);}
+  .formgrp .gt{font-weight:650;font-size:1.04rem;margin:12px 0 2px;}
+  .form{padding:11px 0;border-top:1px solid #eef1f4;}
+  .form:first-of-type{border-top:none;}
+  .form .fh{display:flex;flex-wrap:wrap;align-items:baseline;gap:9px;margin-bottom:1px;}
+  .form .chip{flex:none;background:#eef6ff;color:#0a4c8b;border:1px solid #cfe4ff;
+    border-radius:16px;padding:2px 11px;font-size:.83rem;font-weight:600;white-space:nowrap;}
+  .form .use{color:var(--muted);font-size:.88rem;}
+  .form .fb,.fb{overflow-x:auto;overflow-y:hidden;padding:3px 2px;}
+  table.ex{border-collapse:collapse;margin:8px 0;font-size:.9rem;width:100%;}
+  table.ex th,table.ex td{border:1px solid var(--line);padding:7px 11px;text-align:left;vertical-align:top;}
+  table.ex th{background:#f0f3f6;}
+  table.ex td.hl{background:#fff8c5;}
+  .cmpwrap{overflow-x:auto;}
+  .steps{margin:6px 0 0;}
+  .steps .it{display:flex;gap:10px;padding:7px 0;align-items:baseline;}
+  .steps .it + .it{border-top:1px dashed #eef1f4;}
+  .steps .k{flex:none;min-width:64px;font-weight:700;font-size:.8rem;color:#fff;
+    border-radius:6px;padding:3px 9px;text-align:center;line-height:1.3;}
+  .steps .tx{flex:1;min-width:0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Ch8 · 值函数近似（Value Function Approximation）</h1>
+  <div class="sub">问题驱动地图 · <a class="reflink" href="../../notes/08_chapter8-value-function-approximation.md">章笔记</a> · <a class="reflink" href="../../notes/08_supplement-from-true-error-to-bellman-target.md">Bellman target 补充</a> · <a class="reflink" href="../../notes/08_supplement-lemma-8.1-b-minus-aw-derivation.md">Lemma 8.1 补充</a> · <a class="reflink" href="../00_%E5%85%A8%E4%B9%A6%E5%9C%B0%E5%9B%BE%E4%B8%8E%E9%97%AE%E9%A2%98%E9%93%BE.md">全局地图</a></div>
+  <div class="nav">
+    <a href="./ch07.html">← 上一章：时序差分 TD</a>
+    <a href="./ch09.html">下一章：策略梯度 →</a>
+  </div>
+
+  <div class="mainq">
+    <b>本章主问题：</b>第 7 章的 TD、Sarsa、Q-learning 都默认有一张表 $v(s)$ 或 $q(s,a)$；如果状态太多、连续，或者希望一个状态的经验能泛化到相似状态，怎么办？<br>
+    <span style="color:#7a5200">一句话答案：把表格价值换成参数化函数 $\hat v(s,w)$ 或 $\hat q(s,a,w)$。学习不再是改某个格子，而是用 TD error 更新参数 $w$；线性 TD 收敛到 projected Bellman error 的解，DQN 则用神经网络、目标网络和经验回放把 Q-learning 推到非线性近似。</span>
+  </div>
+
+  <div class="chain">
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 1 · 8.1</span>
+        <span class="qtext">为什么不能一直用表格存价值？</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        表格法为每个状态或状态-动作对存一个独立条目：查值快、更新直接，但状态数一大就存不下，也不能自然给未访问状态估值。函数近似把价值写成 $\hat v(s,w)$，例如线性形式 $\hat v(s,w)=\phi^T(s)w$，只存参数 $w$，由状态特征 $\phi(s)$ 生成价值。</div>
+      <div class="concl"><span class="lab">结论</span> 表格法是“每格一个旋钮”；函数近似是“少量参数控制整张价值曲面”。它换来存储效率和泛化能力，代价是近似误差与特征/模型选择难题。</div>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">表格表示 vs 函数表示：变的是“价值在哪里”</div>
+      <table class="ex">
+        <tr><th>表示方式</th><th>价值怎么读</th><th>更新一个样本时</th><th>优势</th><th>代价</th></tr>
+        <tr><td><b>Tabular</b></td><td>直接读 $\hat v(s_i)$ 或 $\hat q(s_i,a_j)$ 的格子</td><td>只改访问到的那个格子</td><td>精确、直观、理论清楚</td><td>状态多时巨大；未访问状态无法泛化</td></tr>
+        <tr><td><b>Function approximation</b></td><td>输入 $s$ 或 $(s,a)$，计算 $\hat v(s,w)$ / $\hat q(s,a,w)$</td><td class="hl">改参数 $w$，会同时影响许多状态的输出</td><td class="hl">压缩表示、可泛化、可接神经网络</td><td>有近似误差；训练可能更复杂</td></tr>
+      </table>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">关键提醒：linear function approximation 的“linear”是对参数 $w$ 线性，不是对状态 $s$ 线性。$\phi(s)$ 里可以有 $s^2,xy,\cos(\pi x)$。</p>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>价值变成函数以后，什么叫“拟合得好”？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 2 · 8.2.1</span>
+        <span class="qtext">函数近似首先是一个优化问题</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        理想目标是让 $\hat v(s,w)$ 接近真实 $v_\pi(s)$。但“平均误差”必须指定状态 $S$ 的分布。本章不用简单均匀分布作为重点，而用策略 $\pi$ 诱导的 stationary distribution $d_\pi(s)$：长期更常访问的状态，在目标函数里权重更大。</div>
+      <div class="concl"><span class="lab">结论</span> 目标可写为 $J(w)=\sum_s d_\pi(s)(v_\pi(s)-\hat v(s,w))^2$；换策略会改变 $d_\pi$，也就改变“哪些状态更该拟合好”。</div>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">平稳分布的最小算例：权重不是平均给的</div>
+      <p style="margin:4px 0">若策略 $\pi$ 下两状态转移矩阵为：</p>
+      <div class="fb">$$
+P_\pi=
+\begin{bmatrix}
+0.8 &amp; 0.2\\
+0.4 &amp; 0.6
+\end{bmatrix},
+\qquad d_0^T=[1,0].
+$$</div>
+      <table class="ex">
+        <tr><th>$k$</th><th>$d_k^T=d_0^TP_\pi^k$</th><th>读法</th></tr>
+        <tr><td>0</td><td>$[1.0000,\ 0.0000]$</td><td>初始一定在 $s_1$</td></tr>
+        <tr><td>1</td><td>$[0.8000,\ 0.2000]$</td><td>一步后仍更常在 $s_1$</td></tr>
+        <tr><td>2</td><td>$[0.7200,\ 0.2800]$</td><td>开始靠近长期比例</td></tr>
+        <tr><td>5</td><td>$[0.6701,\ 0.3299]$</td><td>已接近 $[2/3,\ 1/3]$</td></tr>
+      </table>
+      <p style="margin:4px 0">平稳条件 $d_\pi^T=d_\pi^TP_\pi,\;d_1+d_2=1$ 给出 $d_\pi=[2/3,\ 1/3]^T$。所以在 $J(w)$ 里，$s_1$ 的误差权重大约是 $s_2$ 的两倍。</p>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>真实 $v_\pi$ 不知道，怎么做梯度下降？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 3 · 8.2.2</span>
+        <span class="qtext">用 MC return 或 TD target 替代真实标签</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        若真实 $v_\pi(s_t)$ 已知，随机梯度更新会是 $(v_\pi(s_t)-\hat v(s_t,w_t))\nabla_w\hat v(s_t,w_t)$。但 RL 的真值未知，所以用可采样的目标替代：MC 用完整回报 $g_t$，TD 用 $r_{t+1}+\gamma\hat v(s_{t+1},w_t)$。</div>
+      <div class="concl"><span class="lab">结论</span> 函数近似 TD：$w_{t+1}=w_t+\alpha_t\delta_t\nabla_w\hat v(s_t,w_t)$，其中 $\delta_t=r_{t+1}+\gamma\hat v(s_{t+1},w_t)-\hat v(s_t,w_t)$。</div>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">从目标函数推到 TD 更新：先像监督学习，再换掉不可见真值</div>
+      <div class="steps">
+        <div class="it"><span class="k" style="background:#0969da">目标</span><span class="tx">理想目标是最小化真实价值误差：
+          <span class="fb">$$J(w)=\mathbb E[(v_\pi(S)-\hat v(S,w))^2].$$</span>
+          这里的“标签”是 $v_\pi(S)$，如果它已知，就几乎是普通监督学习。</span></div>
+        <div class="it"><span class="k" style="background:#1a7f37">梯度</span><span class="tx">对 $J(w)$ 做梯度下降，常数 2 并入步长后：
+          <span class="fb">$$w_{k+1}=w_k+\alpha_k\mathbb E[(v_\pi(S)-\hat v(S,w_k))\nabla_w\hat v(S,w_k)].$$</span>
+          用单个状态样本 $s_t$ 估计期望，就得到不可实现的随机梯度：
+          <span class="fb">$$w_{t+1}=w_t+\alpha_t(v_\pi(s_t)-\hat v(s_t,w_t))\nabla_w\hat v(s_t,w_t).$$</span></span></div>
+        <div class="it"><span class="k" style="background:#9a6700">替换</span><span class="tx">$v_\pi(s_t)$ 正是未知量，所以把它换成可采样 target：
+          <table class="ex">
+            <tr><th>替代方式</th><th>把 $v_\pi(s_t)$ 换成</th><th>得到的更新</th></tr>
+            <tr><td><b>MC</b></td><td>完整回报 $g_t$</td><td>$w_{t+1}=w_t+\alpha_t(g_t-\hat v(s_t,w_t))\nabla_w\hat v(s_t,w_t)$</td></tr>
+            <tr><td><b>TD</b></td><td class="hl">$r_{t+1}+\gamma\hat v(s_{t+1},w_t)$</td><td class="hl">$w_{t+1}=w_t+\alpha_t\delta_t\nabla_w\hat v(s_t,w_t)$</td></tr>
+          </table>
+          其中 $\delta_t=r_{t+1}+\gamma\hat v(s_{t+1},w_t)-\hat v(s_t,w_t)$。</span></div>
+      </div>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">读法：目标函数给出“估计值应该贴近真值”的监督学习壳子；Bellman/TD 给出“真值不可见时用什么当标签”。TD 的特殊之处是这个标签本身也用了当前估计，所以它是 bootstrapping。</p>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">一次 TD-Linear 参数更新手算</div>
+      <p style="margin:4px 0">设 $\hat v(s,w)=\phi^T(s)w$，并给定：</p>
+      <div class="fb">$$
+\phi(s_t)=
+\begin{bmatrix}1\\2\end{bmatrix},\quad
+\phi(s_{t+1})=
+\begin{bmatrix}1\\3\end{bmatrix},\quad
+w_t=
+\begin{bmatrix}0.5\\0.2\end{bmatrix},\quad
+r_{t+1}=1,\ \gamma=0.9,\ \alpha=0.1.
+$$</div>
+      <table class="ex">
+        <tr><th>步骤</th><th>计算</th><th>结果</th></tr>
+        <tr><td>当前估计</td><td>$\hat v(s_t,w_t)=[1,2][0.5,0.2]^T$</td><td>$0.9$</td></tr>
+        <tr><td>下一状态估计</td><td>$\hat v(s_{t+1},w_t)=[1,3][0.5,0.2]^T$</td><td>$1.1$</td></tr>
+        <tr><td>TD error</td><td>$\delta_t=1+0.9\cdot1.1-0.9$</td><td>$1.09$</td></tr>
+        <tr><td>参数更新</td><td>$w_{t+1}=w_t+0.1\cdot1.09[1,2]^T$</td><td>$[0.609,\ 0.418]^T$</td></tr>
+      </table>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">读法：样本告诉我们当前状态价值低了，于是参数沿着能提高 $\hat v(s_t,w)$ 的梯度方向移动；线性情况下这个方向就是 $\phi(s_t)$。</p>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>线性 TD 到底收敛到什么？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 4 · 8.2.5</span>
+        <span class="qtext">TD-Linear 不是直接最小化真实误差，而是解投影 Bellman 问题</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        对线性近似 $\hat v(w)=\Phi w$，平均 TD 更新方向可化成 $b-Aw_t$，其中 $A=\Phi^TD(I-\gamma P_\pi)\Phi,\;b=\Phi^TDr_\pi$。确定性版本 $w_{t+1}=w_t+\alpha_t(b-Aw_t)$ 的不动点是 $w^*=A^{-1}b$。</div>
+      <div class="concl"><span class="lab">结论</span> TD-Linear 收敛解满足 $\Phi w=M T_\pi(\Phi w)$，即 projected Bellman equation；它最小化的是 projected Bellman error，而不是直接最小化 $\|\Phi w-v_\pi\|_D^2$。</div>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">三个误差目标：名字相近，角色不同</div>
+      <table class="ex">
+        <tr><th>目标</th><th>公式</th><th>依赖真值吗</th><th>本章角色</th></tr>
+        <tr><td><b>True value error</b></td><td>$J_E(w)=\|\hat v(w)-v_\pi\|_D^2$</td><td class="hl">依赖 $v_\pi$，不可直接算</td><td>最直观但通常不可实现</td></tr>
+        <tr><td><b>Bellman error</b></td><td>$J_{BE}(w)=\|\hat v(w)-T_\pi\hat v(w)\|_D^2$</td><td>不直接依赖 $v_\pi$</td><td>要求估计值满足 Bellman 自洽</td></tr>
+        <tr><td><b>Projected Bellman error</b></td><td>$J_{PBE}(w)=\|\hat v(w)-M T_\pi\hat v(w)\|_D^2$</td><td>不直接依赖 $v_\pi$</td><td class="hl">TD-Linear 实际对应的目标</td></tr>
+      </table>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">为什么要投影？Bellman backup 后的 $T_\pi(\Phi w)$ 可能不在函数类能表示的空间里；$M$ 把它投回可表示空间，再要求固定点自洽。</p>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>表格 TD 和 LSTD 在这张图里放哪里？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 5 · 特例与变体</span>
+        <span class="qtext">表格 TD 是 one-hot 的 TD-Linear；LSTD 是直接估 $A,b$</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        若选 one-hot 特征 $\phi(s)=e_s$，则 $\hat v(s,w)=w(s)$，TD-Linear 只更新 $w(s_t)$ 那一维，退化为第 7 章的表格 TD。LSTD 则利用 $w^*=A^{-1}b$，从样本直接估计 $\hat A,\hat b$，再解线性方程。</div>
+      <div class="concl"><span class="lab">结论</span> 表格法不是函数近似的对立面，而是特征维度等于状态数的特殊线性近似；LSTD 样本效率高，但计算矩阵代价大，且主要适合线性状态值评估。</div>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">LSTD（Least-Squares TD）：不是一步步“推”参数，而是先凑方程再求解</div>
+      <p style="margin:4px 0">TD-Linear 的平均更新方向可写成 $b-Aw$，固定点满足 $Aw=b$。普通 TD 用随机近似一点点把 $w$ 推向这个固定点；LSTD 反过来，直接用轨迹样本估计方程里的 $A,b$，再解 $\hat A w=\hat b$。</p>
+      <table class="ex">
+        <tr><th>对象</th><th>样本估计式</th><th>含义</th></tr>
+        <tr><td>$A$</td><td>$\hat A_t=\sum_{k=0}^{t-1}\phi(s_k)(\phi(s_k)-\gamma\phi(s_{k+1}))^T$</td><td>把“当前特征”和“TD 自举后的特征差”累计成 $m\times m$ 矩阵</td></tr>
+        <tr><td>$b$</td><td>$\hat b_t=\sum_{k=0}^{t-1}r_{k+1}\phi(s_k)$</td><td>把奖励信号投到当前特征方向，累计成 $m$ 维向量</td></tr>
+        <tr><td>$w$</td><td class="hl">$w_t=\hat A_t^{-1}\hat b_t$</td><td class="hl">直接解线性方程，估计 projected Bellman fixed point</td></tr>
+      </table>
+      <div class="cmpwrap">
+      <table class="ex">
+        <tr><th>比较</th><th>TD-Linear</th><th>LSTD</th></tr>
+        <tr><td>更新方式</td><td>每个样本做一次 $w\leftarrow w+\alpha\delta\phi(s)$</td><td class="hl">累计 $\hat A,\hat b$ 后解 $w=\hat A^{-1}\hat b$</td></tr>
+        <tr><td>步长</td><td>需要选 $\alpha$，步长影响稳定性和速度</td><td>基本不需要步长，但常要给 $\hat A$ 加小正则避免早期不可逆</td></tr>
+        <tr><td>样本效率</td><td>通常较低，要靠迭代慢慢逼近</td><td class="hl">通常更高，因为直接利用了闭式固定点结构</td></tr>
+        <tr><td>计算代价</td><td>每步更新 $m$ 维向量，便宜</td><td>维护 $m\times m$ 矩阵，求逆代价高，朴素求逆约 $O(m^3)$</td></tr>
+        <tr><td>适用范围</td><td>可扩展到动作值、也可配非线性近似</td><td>主要用于线性状态值评估；不如 TD 通用</td></tr>
+      </table>
+      </div>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">一句话：LSTD 是“最小二乘视角下的 TD 固定点求解器”。它不是新的 target，而是更聪明地估出 TD-Linear 理论固定点里的 $A,b$。</p>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>只学状态值还不能控制，动作值怎么近似？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 6 · 8.3</span>
+        <span class="qtext">把 $\hat v(s,w)$ 换成 $\hat q(s,a,w)$，Sarsa / Q-learning 继续成立</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        控制需要比较动作，所以近似对象变为 action value。Sarsa 的 target 仍用实际下一动作 $a_{t+1}$；Q-learning 的 target 仍对下一状态候选动作取最大。变化只是在更新时不再改 $q(s,a)$ 的表格条目，而是改 $\hat q(s,a,w)$ 的参数。</div>
+      <div class="concl"><span class="lab">结论</span> Sarsa-FA 学 $q_\pi$，Q-learning-FA 学 $q_*$；公式外壳仍是 $w\leftarrow w+\alpha(\text{target}-\hat q)\nabla_w\hat q$。</div>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">状态值、动作值、DQN 的 target 对齐看</div>
+      <table class="ex">
+        <tr><th>算法</th><th>近似函数</th><th>TD target</th><th>更新方向</th><th>求解对象</th></tr>
+        <tr><td><b>TD state value</b></td><td>$\hat v(s,w)$</td><td>$r+\gamma\hat v(s',w)$</td><td>$\delta\nabla_w\hat v(s,w)$</td><td>$v_\pi$ 的近似</td></tr>
+        <tr><td><b>Sarsa-FA</b></td><td>$\hat q(s,a,w)$</td><td>$r+\gamma\hat q(s',a',w)$</td><td>$\delta\nabla_w\hat q(s,a,w)$</td><td>$q_\pi$ 的近似</td></tr>
+        <tr><td><b>Q-learning-FA</b></td><td>$\hat q(s,a,w)$</td><td>$r+\gamma\max_{a'}\hat q(s',a',w)$</td><td>$\delta\nabla_w\hat q(s,a,w)$</td><td>$q_*$ 的近似</td></tr>
+        <tr><td><b>DQN</b></td><td>神经网络 $\hat q(s,a,w)$</td><td class="hl">$r+\gamma\max_{a'}\hat q(s',a',w_T)$</td><td>mini-batch 最小化 $(y_T-\hat q(s,a,w))^2$</td><td>用深度网络近似 $q_*$</td></tr>
+      </table>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>神经网络版 Q-learning 为什么要特殊处理？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 7 · 8.4</span>
+        <span class="qtext">DQN 用目标网络稳住 target，用经验回放稳住样本分布</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        若同一个网络参数 $w$ 同时出现在当前估计和 target 里，梯度目标会跟着参数快速移动，训练不稳。DQN 引入 main network $w$ 和 target network $w_T$：前者频繁训练，后者每隔 $C$ 次才复制一次。经验回放把序列样本存入 buffer，再均匀抽 mini-batch，削弱时间相关性并重复利用数据。</div>
+      <div class="concl"><span class="lab">结论</span> DQN 不是只把表格 Q-learning 的表换成网络；它还把 target 固定一段时间，并把在线轨迹改造成可 mini-batch 训练的数据集。</div>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">DQN 算法形式：先收经验，再反复抽 batch 训练主网络</div>
+      <table class="ex">
+        <tr><th>阶段</th><th>操作</th><th>公式 / 说明</th></tr>
+        <tr><td>初始化</td><td>建立 main network 和 target network</td><td>参数先相同：$w_T\leftarrow w$；准备 replay buffer $\mathcal B$</td></tr>
+        <tr><td>收集经验</td><td>用行为策略 $\pi_b$ 和环境交互</td><td>把样本 $(s,a,r,s')$ 存入 $\mathcal B$；$\pi_b$ 通常要有探索</td></tr>
+        <tr><td>抽样</td><td>从 $\mathcal B$ 均匀抽 mini-batch</td><td>$\{(s_i,a_i,r_i,s_i')\}_{i=1}^B$；打散时间相关性，旧样本可重复使用</td></tr>
+        <tr><td>造 target</td><td>用 target network 计算每条样本的监督标签</td><td>$y_{T,i}=r_i+\gamma\max_{a'}\hat q(s_i',a',w_T)$</td></tr>
+        <tr><td>更新主网络</td><td>让 main network 输出贴近 target</td><td>$\displaystyle \min_w\frac1B\sum_{i=1}^B(y_{T,i}-\hat q(s_i,a_i,w))^2$</td></tr>
+        <tr><td>同步目标网络</td><td>每隔 $C$ 次训练，把主网络复制给目标网络</td><td class="hl">$w_T\leftarrow w$；然后继续用新的 $w_T$ 造后续 target</td></tr>
+      </table>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">读法：行为策略负责“产数据”，replay buffer 负责“存数据并随机抽”，target network 负责“造标签”，main network 负责“被训练”。</p>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">DQN 一条样本怎么训练：target 用 $w_T$ 算，prediction 用 $w$ 改</div>
+      <p style="margin:4px 0">从 replay buffer 抽到一条经验 $(s,a,r,s')$。DQN 把它临时看成一个监督学习样本：输入是 $(s,a)$，标签是 $y_T$，主网络输出是 $\hat q(s,a,w)$。</p>
+      <div class="steps">
+        <div class="it"><span class="k" style="background:#0969da">造标签</span><span class="tx">用目标网络看下一状态：
+          <span class="fb">$$y_T=r+\gamma\max_{a'}\hat q(s',a',w_T).$$</span>
+          这里的 $\max_{a'}$ 是 Q-learning 的 greedy target；用 $w_T$ 是为了让标签在一段时间内相对固定。</span></div>
+        <div class="it"><span class="k" style="background:#1a7f37">做预测</span><span class="tx">用主网络预测当前状态动作值：
+          <span class="fb">$$y=\hat q(s,a,w).$$</span>
+          训练时只把 $(s,a)$ 这一路输出往 $y_T$ 拉；下一状态 $s'$ 只用来造标签。</span></div>
+        <div class="it"><span class="k" style="background:#9a6700">降损失</span><span class="tx">对 mini-batch 里的样本最小化平方 TD error：
+          <span class="fb">$$L(w)=\frac1B\sum_{i=1}^{B}\left(y_{T,i}-\hat q(s_i,a_i,w)\right)^2.$$</span>
+          反向传播更新的是主网络参数 $w$，不是 $w_T$；每隔 $C$ 次再令 $w_T=w$。</span></div>
+      </div>
+      <table class="ex">
+        <tr><th>符号</th><th>它来自哪里</th><th>在训练中扮演什么角色</th><th>是否被本次梯度更新</th></tr>
+        <tr><td>$w$</td><td>main network</td><td>输出当前预测 $\hat q(s,a,w)$</td><td class="hl">是，被反向传播更新</td></tr>
+        <tr><td>$w_T$</td><td>target network</td><td>构造标签 $r+\gamma\max_{a'}\hat q(s',a',w_T)$</td><td>否，固定一段时间</td></tr>
+        <tr><td>$a'$</td><td>下一状态 $s'$ 的候选动作</td><td>枚举后取最大值，表示 greedy 目标策略</td><td>不是采样动作，只是求 max 的索引</td></tr>
+      </table>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">为什么 Sarsa-FA / Q-learning-FA 不也先写成两个网络？</div>
+      <p style="margin:4px 0">截图里看起来 $w_t$ 同时出现在 target 和当前估计中：</p>
+      <div class="fb">$$
+r+\gamma\hat q(s',a',w_t)-\hat q(s,a,w_t).
+$$</div>
+      <p style="margin:4px 0">关键是：这些更新通常按 <strong>semi-gradient</strong> 理解。也就是说，在“本次更新”里，target 里的 $\hat q(s',a',w_t)$ 被当作一个已经算好的数字，不对它求梯度；梯度只打到当前项 $\hat q(s,a,w_t)$：</p>
+      <div class="fb">$$
+w_{t+1}=w_t+\alpha\underbrace{[r+\gamma\hat q(s',a',w_t)-\hat q(s,a,w_t)]}_{\text{本步当作常数误差 }\delta_t}
+\nabla_w\hat q(s,a,w_t).
+$$</div>
+      <table class="ex">
+        <tr><th>做法</th><th>target 里的参数怎么处理</th><th>为什么这样够用 / 不够用</th></tr>
+        <tr><td><b>Sarsa-FA / Q-learning-FA</b></td><td>本次更新中把 $w_t$ 算出的 target 当常数；下一步自然会用新 $w_{t+1}$ 重算</td><td>线性或小模型、在线单步更新时，这是标准 semi-gradient TD 写法；实现简单</td></tr>
+        <tr><td><b>DQN</b></td><td class="hl">用单独的 $w_T$ 让 target 在很多次 mini-batch 更新中保持相对固定</td><td class="hl">神经网络非线性、同一批 replay 样本会被反复训练、再加 $\max$ 易放大估计误差，target 太快移动会明显不稳定</td></tr>
+      </table>
+      <p style="margin:10px 0 2px">可以先把它理解成 <strong>batch size = 1 和 batch size = B</strong> 的区别，但这只解释了训练节奏：</p>
+      <table class="ex">
+        <tr><th>层面</th><th>Sarsa-FA / Q-learning-FA</th><th>DQN</th><th>这层差别说明什么</th></tr>
+        <tr><td>批次大小</td><td>通常一条新样本来就更新一次，近似 batch size $=1$</td><td class="hl">从 replay buffer 抽 mini-batch，batch size $=B$</td><td>解释了“单样本在线更新” vs “小批量神经网络训练”</td></tr>
+        <tr><td>target 冻结时间</td><td>只在本次 semi-gradient 更新里把 target 当常数，下一步就重算</td><td class="hl">用 $w_T$ 让 target 固定很多次更新，再周期性同步</td><td class="hl">这是 DQN 稳定性的关键机制之一</td></tr>
+        <tr><td>样本来源</td><td>通常按环境时间顺序使用当前样本</td><td>从 replay buffer 随机抽旧样本，可重复使用</td><td>打散时序相关性，提高数据效率</td></tr>
+      </table>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">所以答案不是“前面的公式没有这个问题”，而是：前面已经用 semi-gradient 在单步内冻结 target；DQN 把这个冻结动作工程化、显式化，并且冻结得更久。</p>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">两条样本的 mini-batch 手算：先算每条 target，再平均 loss</div>
+      <p style="margin:4px 0">设 $\gamma=0.9$，mini-batch 有两条样本。目标网络已经给出下一状态各动作值，主网络给出当前预测：</p>
+      <table class="ex">
+        <tr><th>样本</th><th>奖励 $r$</th><th>目标网络下一状态值</th><th>$y_T$</th><th>主网络当前预测 $\hat q(s,a,w)$</th><th>平方误差</th></tr>
+        <tr><td>1</td><td>$1$</td><td>$\max\{2,5\}=5$</td><td>$1+0.9\cdot5=5.5$</td><td>$4.0$</td><td>$(5.5-4.0)^2=2.25$</td></tr>
+        <tr><td>2</td><td>$-1$</td><td>$\max\{3,1\}=3$</td><td>$-1+0.9\cdot3=1.7$</td><td>$2.2$</td><td>$(1.7-2.2)^2=0.25$</td></tr>
+      </table>
+      <div class="fb">$$
+L(w)=\frac{2.25+0.25}{2}=1.25.
+$$</div>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">读法：DQN 的 mini-batch 训练很像监督学习，但标签 $y_T$ 不是数据集自带的真值，而是用 Bellman optimality target 临时造出来的。目标网络负责造标签，主网络负责被训练。</p>
+    </div>
+
+  </div>
+
+  <h2>核心机制总表</h2>
+
+  <div class="cmpwrap">
+  <table class="ex">
+    <tr><th>机制</th><th>解决什么问题</th><th>公式 / 操作</th><th>一句话记法</th></tr>
+    <tr><td><b>特征 $\phi(s)$</b></td><td>把状态转成可计算输入</td><td>$\hat v(s,w)=\phi^T(s)w$</td><td>状态不是价值，特征才进入模型</td></tr>
+    <tr><td><b>平稳分布 $d_\pi$</b></td><td>定义哪些状态误差更重要</td><td>$d_\pi^T=d_\pi^TP_\pi$</td><td>长期常去的状态权重大</td></tr>
+    <tr><td><b>TD error $\delta_t$</b></td><td>用样本构造参数更新信号</td><td>$r+\gamma\hat v(s',w)-\hat v(s,w)$</td><td>target 减当前估计</td></tr>
+    <tr><td><b>投影 $M$</b></td><td>Bellman backup 后可能出了函数空间</td><td>$M=\Phi(\Phi^TD\Phi)^{-1}\Phi^TD$</td><td>把目标拉回可表示空间</td></tr>
+    <tr><td><b>目标网络</b></td><td>减少 target 随训练抖动</td><td>$y_T=r+\gamma\max_{a'}\hat q(s',a',w_T)$</td><td>让靶子先别跑太快</td></tr>
+    <tr><td><b>经验回放</b></td><td>打散序列相关性、提高数据效率</td><td>从 buffer 均匀抽 mini-batch</td><td>把轨迹样本变成训练集</td></tr>
+  </table>
+  </div>
+
+  <h2>易混点对比表</h2>
+
+  <p style="margin:2px 0">① <strong>linear in $w$ / nonlinear in $s$</strong>：</p>
+  <div class="cmpwrap">
+  <table class="ex">
+    <tr><th>函数</th><th>是否线性函数近似</th><th>原因</th></tr>
+    <tr><td>$\hat v(s,w)=as+b=[s,1]w$</td><td>是</td><td>对参数 $a,b$ 线性</td></tr>
+    <tr><td>$\hat v(s,w)=as^2+bs+c=[s^2,s,1]w$</td><td class="hl">仍然是</td><td>对状态 $s$ 非线性，但对参数 $w$ 线性</td></tr>
+    <tr><td>神经网络 $\hat v(s,w)$</td><td>通常不是</td><td>参数在多层非线性组合里出现</td></tr>
+  </table>
+  </div>
+
+  <p style="margin:14px 0 2px">② <strong>拟合误差为零 / 训练 loss 为零 / 价值估计准确</strong> 不是一回事：</p>
+  <div class="cmpwrap">
+  <table class="ex">
+    <tr><th>现象</th><th>能说明什么</th><th>不能说明什么</th></tr>
+    <tr><td>训练样本 TD loss 很小</td><td>网络把 replay buffer 里的样本拟合好了</td><td>不能保证未覆盖的状态动作也准确</td></tr>
+    <tr><td>特征维度更高</td><td>函数类表达力通常更强</td><td>不能自动保证泛化更好或训练更稳</td></tr>
+    <tr><td>表格 TD 收敛到真值</td><td>one-hot 特征足以表达每个状态值</td><td>不能推广到低维特征或非线性网络的所有情形</td></tr>
+  </table>
+  </div>
+
+  <p style="margin:14px 0 2px">③ <strong>DQN 的 off-policy 读法</strong>：</p>
+  <div class="cmpwrap">
+  <table class="ex">
+    <tr><th>角色</th><th>负责什么</th><th>DQN 里怎么体现</th></tr>
+    <tr><td>行为策略 $\pi_b$</td><td>生成经验样本</td><td>样本先存入 replay buffer，可以来自探索性策略</td></tr>
+    <tr><td>目标策略</td><td>定义学什么</td><td>target 用 $\max_{a'}\hat q(s',a',w_T)$，对应 greedy 目标</td></tr>
+    <tr><td>主网络 $w$</td><td>被训练的函数</td><td>每个 iteration 用 mini-batch 更新</td></tr>
+    <tr><td>目标网络 $w_T$</td><td>构造较稳定的 target</td><td>每隔 $C$ 次令 $w_T=w$</td></tr>
+  </table>
+  </div>
+
+  <p style="margin:14px 0 2px">④ <strong>DQN 这一行公式的符号别混</strong>：</p>
+  <div class="cmpwrap">
+  <table class="ex">
+    <tr><th>符号</th><th>含义</th><th>最容易误会的点</th></tr>
+    <tr><td>$(s,a,r,s')$</td><td>replay buffer 里抽到的经验样本</td><td>$a$ 是当时行为策略实际做过的动作，不一定是 greedy 动作</td></tr>
+    <tr><td>$a'$</td><td>下一状态 $s'$ 下被枚举的候选动作</td><td class="hl">不是样本里“实际发生的下一动作”；只是为了算 $\max_{a'}$</td></tr>
+    <tr><td>$y_T$</td><td>临时造出的监督标签</td><td>不是环境给的真值，而是 $r+\gamma\max_{a'}\hat q(s',a',w_T)$</td></tr>
+    <tr><td>$\hat q(s,a,w)$</td><td>主网络对当前样本动作的预测</td><td class="hl">loss 直接拉它靠近 $y_T$，所以梯度更新的是 $w$</td></tr>
+    <tr><td>$\hat q(s',a',w_T)$</td><td>目标网络对下一状态候选动作的估计</td><td>只参与造 target，本次反向传播不更新 $w_T$</td></tr>
+  </table>
+  </div>
+
+  <h2>关键公式（结论附带）</h2>
+
+  <div class="formgrp">
+    <div class="gt">从表格更新到参数更新</div>
+    <div class="form">
+      <div class="fh"><span class="chip">线性价值</span><span class="use">特征和参数内积</span></div>
+      <div class="fb">$$\hat v(s,w)=\phi^T(s)w,\qquad \nabla_w\hat v(s,w)=\phi(s)$$</div>
+    </div>
+    <div class="form">
+      <div class="fh"><span class="chip">状态值 TD-FA</span><span class="use">给定策略评估</span></div>
+      <div class="fb">$$w_{t+1}=w_t+\alpha_t[r_{t+1}+\gamma\hat v(s_{t+1},w_t)-\hat v(s_t,w_t)]\nabla_w\hat v(s_t,w_t)$$</div>
+    </div>
+    <div class="form">
+      <div class="fh"><span class="chip">TD-Linear</span><span class="use">线性近似特例</span></div>
+      <div class="fb">$$w_{t+1}=w_t+\alpha_t[r_{t+1}+\gamma\phi^T(s_{t+1})w_t-\phi^T(s_t)w_t]\phi(s_t)$$</div>
+    </div>
+    <div class="form">
+      <div class="fh"><span class="chip">LSTD</span><span class="use">直接估计线性固定点</span></div>
+      <div class="fb">$$
+\hat A_t=\sum_{k=0}^{t-1}\phi(s_k)(\phi(s_k)-\gamma\phi(s_{k+1}))^T,\quad
+\hat b_t=\sum_{k=0}^{t-1}r_{k+1}\phi(s_k),\quad
+w_t=\hat A_t^{-1}\hat b_t
+$$</div>
+    </div>
+    <div class="form">
+      <div class="fh"><span class="chip">Sarsa-FA</span><span class="use">实际下一动作</span></div>
+      <div class="fb">$$w_{t+1}=w_t+\alpha_t[r_{t+1}+\gamma\hat q(s_{t+1},a_{t+1},w_t)-\hat q(s_t,a_t,w_t)]\nabla_w\hat q(s_t,a_t,w_t)$$</div>
+    </div>
+    <div class="form">
+      <div class="fh"><span class="chip">Q-learning-FA</span><span class="use">下一状态最大动作</span></div>
+      <div class="fb">$$w_{t+1}=w_t+\alpha_t[r_{t+1}+\gamma\max_{a'}\hat q(s_{t+1},a',w_t)-\hat q(s_t,a_t,w_t)]\nabla_w\hat q(s_t,a_t,w_t)$$</div>
+    </div>
+    <div class="form">
+      <div class="fh"><span class="chip">DQN target</span><span class="use">目标网络固定 target</span></div>
+      <div class="fb">$$y_T=r+\gamma\max_{a'}\hat q(s',a',w_T),\qquad \min_w (y_T-\hat q(s,a,w))^2$$</div>
+    </div>
+  </div>
+
+  <div class="insight">
+    <span class="lab">核心洞见</span><br>
+    第 8 章的关键不是“又多了几个 TD 公式”，而是把价值学习从<strong>有限表格空间</strong>推进到<strong>函数空间</strong>。从此，每个样本不再只修一个格子，而是在参数空间里推一下整张价值函数；这既带来泛化，也带来投影误差、特征选择、训练稳定性这些新问题。
+  </div>
+
+  <h2>核心概念（结论速记）</h2>
+  <div class="tags">
+    <span class="tag">function approximation</span><span class="tag">feature vector $\phi(s)$</span>
+    <span class="tag">linear in parameters</span><span class="tag">stationary distribution</span>
+    <span class="tag">TD-Linear</span><span class="tag">one-hot = tabular</span>
+    <span class="tag">projected Bellman error</span><span class="tag">LSTD</span>
+    <span class="tag">Sarsa-FA</span><span class="tag">Q-learning-FA</span>
+    <span class="tag">DQN</span><span class="tag">target network</span><span class="tag">experience replay</span>
+  </div>
+
+  <h2>上接 / 下启</h2>
+  <p><strong>上接 Ch7：</strong>第 7 章已经把 MC 的完整回报换成一步 TD target，但仍然用表格存 $v(s)$ 或 $q(s,a)$；第 8 章把这些表格条目换成参数化函数输出。</p>
+  <div class="next"><strong>下启 → <a href="./ch09.html">Ch9 Policy Gradient</a>：</strong>
+    第 8 章虽然近似了价值函数，但策略 $\pi(a|s)$ 在 Sarsa/Q-learning 的实现里仍常是表格或 $\epsilon$-greedy 规则。下一章直接参数化策略 $\pi(a|s,\theta)$，用梯度优化策略本身。</div>
+
+</div>
+</body>
+</html>

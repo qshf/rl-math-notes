@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ch7 地图 · 时序差分方法（问题驱动）</title>
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+<style>
+  :root{
+    --bg:#f6f8fa; --card:#fff; --ink:#1f2328; --muted:#59636e;
+    --accent:#0969da; --green:#1a7f37; --amber:#9a6700; --line:#d1d9e0;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+    line-height:1.75;}
+  .wrap{max-width:860px;margin:0 auto;padding:30px 20px 90px;}
+  h1{font-size:1.55rem;margin:0 0 2px;}
+  .sub{color:var(--muted);font-size:.9rem;margin:0 0 14px;}
+  .nav{display:flex;justify-content:space-between;font-size:.88rem;margin:0 0 18px;}
+  .nav a{color:var(--accent);text-decoration:none;}
+  .mainq{background:linear-gradient(0deg,#fff8c5,#fffdf0);border:1px solid #eac54f;
+    border-left:5px solid var(--amber);border-radius:8px;padding:14px 16px;margin:0 0 8px;}
+  .mainq b{color:#7a5200;}
+  .chain{margin:14px 0;}
+  .qcard{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:0 0 14px;margin:0;box-shadow:0 1px 3px rgba(31,35,40,.07);overflow:hidden;}
+  .qhead{display:flex;align-items:flex-start;gap:10px;padding:13px 16px 6px;}
+  .qnum{flex:none;background:var(--accent);color:#fff;font-size:.78rem;font-weight:700;
+    border-radius:20px;padding:3px 11px;margin-top:2px;white-space:nowrap;}
+  .qtext{font-weight:650;font-size:1.06rem;}
+  .why{padding:2px 16px 0;color:#374151;}
+  .why .lab{color:var(--muted);font-size:.8rem;font-weight:700;letter-spacing:.04em;}
+  .concl{margin:12px 16px 0;background:#eef6ff;border:1px solid #cfe4ff;border-radius:8px;
+    padding:9px 13px;}
+  .concl .lab{color:var(--accent);font-size:.78rem;font-weight:700;margin-right:6px;}
+  .bridge{display:flex;flex-direction:column;align-items:center;color:var(--muted);
+    font-size:.9rem;margin:7px 0;}
+  .bridge .ar{color:var(--accent);font-size:1.25rem;line-height:1;}
+  .bridge .nq{background:#f0f3f6;border:1px dashed #aeb6bf;border-radius:18px;
+    padding:3px 12px;margin-top:3px;}
+  .bridge .nq b{color:var(--ink);}
+  .insight{background:#dafbe1;border:1px solid #aceebb;border-left:5px solid var(--green);
+    border-radius:8px;padding:12px 15px;margin:18px 0;}
+  .insight .lab{color:var(--green);font-weight:700;}
+  h2{font-size:1.12rem;margin:30px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px;}
+  .tags .tag{display:inline-block;background:#ddf4ff;color:#0a4c8b;border-radius:18px;
+    padding:3px 11px;font-size:.84rem;margin:3px 5px 3px 0;}
+  .next{background:#fff;border:1px solid var(--line);border-left:5px solid var(--green);
+    border-radius:8px;padding:12px 15px;}
+  .next a{color:var(--accent);text-decoration:none;font-weight:600;}
+  .reflink{color:var(--accent);text-decoration:none;}
+  code{background:#eaeef2;padding:1px 5px;border-radius:4px;font-size:.9em;}
+  .formgrp{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:4px 18px 12px;margin-bottom:14px;box-shadow:0 1px 3px rgba(31,35,40,.07);}
+  .formgrp .gt{font-weight:650;font-size:1.04rem;margin:12px 0 2px;}
+  .form{padding:11px 0;border-top:1px solid #eef1f4;}
+  .form:first-of-type{border-top:none;}
+  .form .fh{display:flex;flex-wrap:wrap;align-items:baseline;gap:9px;margin-bottom:1px;}
+  .form .chip{flex:none;background:#eef6ff;color:#0a4c8b;border:1px solid #cfe4ff;
+    border-radius:16px;padding:2px 11px;font-size:.83rem;font-weight:600;white-space:nowrap;}
+  .form .use{color:var(--muted);font-size:.88rem;}
+  .form .fb,.fb{overflow-x:auto;overflow-y:hidden;padding:3px 2px;}
+  table.ex{border-collapse:collapse;margin:8px 0;font-size:.9rem;width:100%;}
+  table.ex th,table.ex td{border:1px solid var(--line);padding:7px 11px;text-align:left;vertical-align:top;}
+  table.ex th{background:#f0f3f6;}
+  table.ex td.hl{background:#fff8c5;}
+  .cmpwrap{overflow-x:auto;}
+  .steps{margin:6px 0 0;}
+  .steps .it{display:flex;gap:10px;padding:7px 0;align-items:baseline;}
+  .steps .it + .it{border-top:1px dashed #eef1f4;}
+  .steps .k{flex:none;min-width:64px;font-weight:700;font-size:.8rem;color:#fff;
+    border-radius:6px;padding:3px 9px;text-align:center;line-height:1.3;}
+  .steps .tx{flex:1;min-width:0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Ch7 · 时序差分方法（Temporal-Difference Methods）</h1>
+  <div class="sub">问题驱动地图 · <a class="reflink" href="../../notes/07_chapter7-temporal-difference-methods.md">章笔记</a> · <a class="reflink" href="../00_%E5%85%A8%E4%B9%A6%E5%9C%B0%E5%9B%BE%E4%B8%8E%E9%97%AE%E9%A2%98%E9%93%BE.md">全局地图</a></div>
+  <div class="nav">
+    <a href="./ch06.html">← 上一章：随机近似</a>
+    <a href="./ch08.html">下一章：函数近似 →</a>
+  </div>
+
+  <div class="mainq">
+    <b>本章主问题：</b>MC 要等某个 visit 的完整后续回报 $G_t$，DP 又要模型；能不能<strong>不知道模型、也不等完整回报算完</strong>，每来一步经验就更新价值？<br>
+    <span style="color:#7a5200">一句话答案：TD 用「一步奖励 + 未来价值估计」构造 target，再用随机近似更新。全章算法共享同一个壳子：旧估计 $+\alpha(\text{target}-\text{旧估计})$，区别只在 target 怎么定义。</span>
+  </div>
+
+  <div class="chain">
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 1 · TD(0)</span>
+        <span class="qtext">给定策略，状态值能不能一步样本就更新？</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        Bellman equation 说 $v_\pi(s)$ 等于 $R_{t+1}+\gamma v_\pi(S_{t+1})$ 的期望。模型未知时算不了期望，但一步经验给出样本 $r_{t+1},s_{t+1}$，于是用 $r_{t+1}+\gamma v_t(s_{t+1})$ 当 TD target，把 $v_t(s_t)$ 往它那里拉。</div>
+      <div class="concl"><span class="lab">结论</span> $v_{t+1}(s_t)=v_t(s_t)+\alpha_t[\;r_{t+1}+\gamma v_t(s_{t+1})-v_t(s_t)\;]$；每步只更新访问到的 $s_t$</div>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">TD 与 MC 的根本分叉：target 从哪里来</div>
+      <table class="ex">
+        <tr><th>方法</th><th>target</th><th>何时更新</th><th>是否自举</th><th>典型代价</th></tr>
+        <tr><td><b>MC</b></td><td>完整后续回报 $G_t$</td><td>episode 结束后反向算 $G_t$，可逐 episode 更新沿途 visit</td><td>否</td><td>方差高、不能自然处理 continuing tasks</td></tr>
+        <tr><td><b>TD</b></td><td>$r_{t+1}+\gamma v_t(s_{t+1})$</td><td class="hl">一步样本到手就更新</td><td class="hl">是，用当前估计接尾巴</td><td>有 bootstrapping bias</td></tr>
+      </table>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">一句话：MC 用真实长回报；TD 用一步真实奖励 + 当前价值估计。</p>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>只估 $v(s)$ 还不够做控制，怎么比较动作？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 2 · Sarsa</span>
+        <span class="qtext">把 TD 从状态值推广到动作值</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        要改进策略，需要知道每个动作好坏，所以把 $v(s)$ 换成 $q(s,a)$。Sarsa 的 target 使用下一状态下<strong>实际采样出来的动作</strong> $a_{t+1}$，样本正好是 $(s_t,a_t,r_{t+1},s_{t+1},a_{t+1})$，因此它评估的是当前正在采样的策略。</div>
+      <div class="concl"><span class="lab">结论</span> Sarsa target：$r_{t+1}+\gamma q_t(s_{t+1},a_{t+1})$；on-policy，可接 $\epsilon$-greedy 做 GPI</div>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>一步 TD 太短，MC 又太长，中间能不能调节？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 3 · n-step Sarsa</span>
+        <span class="qtext">用 $n$ 控制“真实看几步再自举”</span></div>
+      <div class="why"><span class="lab">思路</span>
+        <table class="ex">
+          <tr><th>位置</th><th>真实奖励看几步</th><th>自举尾巴</th><th>target 长什么样</th><th>偏差 / 方差</th></tr>
+          <tr><td><b>one-step Sarsa</b></td><td>1 步</td><td>立刻用 $q_t(s_{t+1},a_{t+1})$</td><td>$r_{t+1}+\gamma q_t(s_{t+1},a_{t+1})$</td><td>偏差较高 / 方差较低</td></tr>
+          <tr><td><b>$n$-step Sarsa</b></td><td class="hl">$n$ 步</td><td class="hl">第 $n$ 步后用 $q_t(s_{t+n},a_{t+n})$</td><td>$r_{t+1}+\cdots+\gamma^{n-1}r_{t+n}+\gamma^n q_t(s_{t+n},a_{t+n})$</td><td>中间折中</td></tr>
+          <tr><td><b>MC</b></td><td>直到 episode 结束</td><td>不用自举</td><td>$r_{t+1}+\gamma r_{t+2}+\gamma^2r_{t+3}+\cdots$</td><td>偏差较低 / 方差较高</td></tr>
+        </table>
+      </div>
+      <div class="concl"><span class="lab">结论</span> $n=1$ 是 Sarsa，$n=\infty$ 是 MC；$n$ 是“真实展开多少步再接估计值”的旋钮。</div>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">3-step Sarsa 手算：先看 3 步真实奖励，再接自举尾巴</div>
+      <p style="margin:4px 0">要更新的是<strong>起点这一对</strong> $(s_t,a_t)$。3-step 的意思是：先真的往后看 3 步奖励，再用第 3 步后的动作值估计接上尾巴。</p>
+      <table class="ex">
+        <tr><th>时间位置</th><th>看到的信息</th><th>放进 target 的项</th></tr>
+        <tr><td>$t+1$</td><td>第 1 步奖励 $r_{t+1}=1$</td><td>$1$</td></tr>
+        <tr><td>$t+2$</td><td>第 2 步奖励 $r_{t+2}=0$</td><td>$0.9\cdot0$</td></tr>
+        <tr><td>$t+3$</td><td>第 3 步奖励 $r_{t+3}=2$</td><td>$0.9^2\cdot2$</td></tr>
+        <tr><td>$t+3$ 之后</td><td>不继续展开真实奖励，用当前表估计 $q_t(s_{t+3},a_{t+3})=5$</td><td>$0.9^3\cdot5$</td></tr>
+      </table>
+      <p style="margin:4px 0">通用公式是：</p>
+      <div class="fb">$$
+\bar q_t^{(n)}
+=
+r_{t+1}
++\gamma r_{t+2}
++\cdots
++\gamma^{n-1}r_{t+n}
++\gamma^n q_t(s_{t+n},a_{t+n})
+$$</div>
+      <p style="margin:4px 0">本例取 $n=3$，所以先套成：</p>
+      <div class="fb">$$
+\bar q_t^{(3)}
+=
+r_{t+1}
++\gamma r_{t+2}
++\gamma^2 r_{t+3}
++\gamma^3 q_t(s_{t+3},a_{t+3})
+$$</div>
+      <p style="margin:4px 0">再代入 $\gamma=0.9,\;\alpha=0.5,\;q_t(s_t,a_t)=2$：</p>
+      <div class="fb">$$
+\begin{aligned}
+\bar q_t^{(3)}
+&amp;=1+0.9\cdot0+0.9^2\cdot2+0.9^3\cdot5\\
+&amp;=1+0+1.62+3.645=6.265,\\
+q_{new}
+&amp;=2+0.5(6.265-2)=4.1325.
+\end{aligned}
+$$</div>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">读法：$6.265$ 是“看 3 步后的目标值”；$4.1325$ 是把原来的 $q_t(s_t,a_t)=2$ 朝这个目标走一半。实现上不是每隔 $n$ 步才更新一次，而是每来一步，就回头更新“已经等够 $n$ 步信息”的那一对 $(s,a)$。</p>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>能不能直接学最优 $q_*$，而不是当前策略的 $q_\pi$？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 4 · Q-learning</span>
+        <span class="qtext">把下一步实际动作换成下一状态最大动作</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        Sarsa target 问“当前策略下一步实际选了什么”；Q-learning target 问“如果到下一状态后选当前估计最好的动作，会怎样”。因此它不需要 $a_{t+1}$，只需要 $s_{t+1}$ 后对所有候选动作 $a'$ 取最大。</div>
+      <div class="concl"><span class="lab">结论</span> Q-learning target：$r_{t+1}+\gamma\max_{a'}q_t(s_{t+1},a')$；求 Bellman optimality equation，天然 off-policy</div>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">Q-learning 的“off-policy 本质”和“on/off-policy 实现”要分两层看</div>
+      <table class="ex">
+        <tr><th>层次</th><th>书里的说法</th><th>行为策略 $\pi_b$：负责采样</th><th>目标策略 / 被维护的策略</th><th>TD target</th></tr>
+        <tr><td><b>算法本质</b></td><td class="hl">Q-learning is off-policy</td><td>可以来自别的策略，只要样本覆盖足够</td><td>由最优动作值推出 greedy optimal policy</td><td class="hl">$r+\gamma\max_{a'}q(s',a')$</td></tr>
+        <tr><td><b>Algorithm 7.2</b></td><td>on-policy version / on-policy implementation</td><td>$\epsilon$-greedy：当前策略 $\pi_t$ 自己采样</td><td>$\pi_{t+1}$ 仍更新成当前 $q$ 的 $\epsilon$-greedy 策略，不是纯 greedy：<br>
+          $\pi_{t+1}(a|s_t)=
+          \begin{cases}
+          1-\epsilon+\epsilon/|\mathcal A(s_t)|,&amp; a=\arg\max_b q_{t+1}(s_t,b)\\
+          \epsilon/|\mathcal A(s_t)|,&amp; \text{otherwise}
+          \end{cases}$</td><td>$r+\gamma\max_{a'}q(s',a')$</td></tr>
+        <tr><td><b>Algorithm 7.3</b></td><td>off-policy version / off-policy implementation</td><td>任意探索性 $\pi_b$，可先收集整批经验</td><td class="hl">单独维护 greedy 目标策略 $\pi_T$</td><td>$r+\gamma\max_{a'}q(s',a')$</td></tr>
+      </table>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">所以你截图里的那个可以叫<strong>书中 Algorithm 7.2 的 on-policy implementation of Q-learning</strong>：on-policy 指“用当前被维护的 $\epsilon$-greedy 策略来采样”，不是说它的 TD target 变成了 Sarsa。若行为策略是 $\epsilon$-greedy、目标策略明确是 greedy，那就是 Algorithm 7.3 这种 off-policy implementation。</p>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">同一条经验，Sarsa 和 Q-learning 的 target 可以完全不同</div>
+      <p style="margin:4px 0">采到 $s_t=A,\;a_t=\text{Right},\;r_{t+1}=1,\;s_{t+1}=B$。在 $B$ 里当前 $q(B,\text{Left})=2,\;q(B,\text{Right})=8$，行为策略实际采样到 $a_{t+1}=\text{Left}$，$\gamma=0.9$：</p>
+      <table class="ex">
+        <tr><th>算法</th><th>用哪个下一动作</th><th>target 计算</th><th>读法</th></tr>
+        <tr><td>Sarsa</td><td>实际动作 $a_{t+1}=\text{Left}$</td><td>$1+0.9\cdot2=2.8$</td><td>尊重当前策略实际走法</td></tr>
+        <tr><td>Expected Sarsa</td><td>按 $\pi(a'|B)$ 加权平均</td><td>若 $\pi(L)=0.25,\pi(R)=0.75$，则 $1+0.9(0.25\cdot2+0.75\cdot8)=6.85$</td><td>把下一动作随机性平均掉</td></tr>
+        <tr><td>Q-learning</td><td>候选动作最大值 $\max\{2,8\}$</td><td>$1+0.9\cdot8=8.2$</td><td>按贪心目标策略看未来</td></tr>
+      </table>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>这么多算法，能不能只看一个统一公式？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 5 · 统一视角</span>
+        <span class="qtext">所有动作值算法只是在换 $\bar q_t$</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        Sarsa、Expected Sarsa、$n$-step Sarsa、Q-learning、MC 都可以写成同一个随机近似更新：把刚访问的 $q_t(s_t,a_t)$ 朝某个 target $\bar q_t$ 移动。真正区分算法的不是更新壳子，而是 $\bar q_t$ 的定义。</div>
+      <div class="concl"><span class="lab">结论</span> $q_{t+1}(s_t,a_t)=q_t(s_t,a_t)+\alpha_t[\bar q_t-q_t(s_t,a_t)]$</div>
+    </div>
+
+  </div>
+
+  <h2>核心 target 对比表（本章最重要）</h2>
+
+  <div class="cmpwrap">
+  <table class="ex">
+    <tr><th>算法</th><th>$\bar q_t$ / target</th><th>自举深度</th><th>求解对象</th><th>策略关系</th></tr>
+    <tr><td><b>Sarsa</b></td><td>$r_{t+1}+\gamma q_t(s_{t+1},a_{t+1})$</td><td>1 步后自举</td><td>$q_\pi$</td><td>on-policy</td></tr>
+    <tr><td><b>Expected Sarsa</b></td><td>$r_{t+1}+\gamma\sum_{a'}\pi(a'|s_{t+1})q_t(s_{t+1},a')$</td><td>1 步后自举</td><td>$q_\pi$</td><td>on-policy</td></tr>
+    <tr><td><b>$n$-step Sarsa</b></td><td>$r_{t+1}+\cdots+\gamma^{n-1}r_{t+n}+\gamma^n q_t(s_{t+n},a_{t+n})$</td><td class="hl">$n$ 步后自举</td><td>$q_\pi$</td><td>on-policy</td></tr>
+    <tr><td><b>Q-learning</b></td><td>$r_{t+1}+\gamma\max_{a'}q_t(s_{t+1},a')$</td><td>1 步后自举</td><td class="hl">$q_*$</td><td class="hl">本质 off-policy；可 on/off-policy 实现</td></tr>
+    <tr><td><b>MC</b></td><td>$r_{t+1}+\gamma r_{t+2}+\gamma^2r_{t+3}+\cdots$</td><td>不自举</td><td>$q_\pi$</td><td>通常 on-policy</td></tr>
+  </table>
+  </div>
+
+  <h2>易混点对比表</h2>
+
+  <p style="margin:2px 0">① <strong>on-policy / off-policy</strong> 不等于 online / offline：</p>
+  <div class="cmpwrap">
+  <table class="ex">
+    <tr><th>概念</th><th>判断问题</th><th>代表</th><th>一句话</th></tr>
+    <tr><td>on-policy</td><td>采样策略 $\pi_b$ 和学习目标策略 $\pi_T$ 是否相同？</td><td>Sarsa</td><td>用当前策略生成样本，也评估/改进它自己</td></tr>
+    <tr><td>off-policy</td><td>能否用一个策略采样、学习另一个策略？</td><td>Q-learning</td><td>行为策略负责探索，目标策略可以 greedy</td></tr>
+    <tr><td>online</td><td>样本一到就能更新吗？</td><td>TD、Sarsa、Q-learning</td><td>更新节奏问题</td></tr>
+    <tr><td>offline</td><td>是否等数据/episode 收集后再处理？</td><td>MC、离线 Q-learning</td><td>数据处理方式问题</td></tr>
+  </table>
+  </div>
+
+  <p style="margin:14px 0 2px">② <strong>动作符号</strong> 最容易看错：</p>
+  <div class="cmpwrap">
+  <table class="ex">
+    <tr><th>符号</th><th>含义</th><th>哪里出现</th></tr>
+    <tr><td>$a_t$</td><td>当前状态 $s_t$ 实际执行的动作</td><td>所有动作值更新都更新 $(s_t,a_t)$</td></tr>
+    <tr><td>$a_{t+1}$</td><td>下一状态 $s_{t+1}$ 下实际采样出来的动作</td><td>Sarsa target</td></tr>
+    <tr><td>$a'$</td><td>下一状态里用于枚举、求和或取最大值的候选动作</td><td>Expected Sarsa / Q-learning</td></tr>
+  </table>
+  </div>
+
+  <h2>关键公式（结论附带）</h2>
+
+  <div class="formgrp">
+    <div class="gt">本章所有公式都在围绕 target - 当前估计</div>
+    <div class="form">
+      <div class="fh"><span class="chip">TD state value</span><span class="use">一步状态值 prediction</span></div>
+      <div class="fb">$$v_{t+1}(s_t)=v_t(s_t)+\alpha_t[r_{t+1}+\gamma v_t(s_{t+1})-v_t(s_t)]$$</div>
+    </div>
+    <div class="form">
+      <div class="fh"><span class="chip">Sarsa</span><span class="use">实际下一动作</span></div>
+      <div class="fb">$$q_{t+1}(s_t,a_t)=q_t(s_t,a_t)+\alpha_t[r_{t+1}+\gamma q_t(s_{t+1},a_{t+1})-q_t(s_t,a_t)]$$</div>
+    </div>
+    <div class="form">
+      <div class="fh"><span class="chip">Q-learning</span><span class="use">下一状态最大动作</span></div>
+      <div class="fb">$$q_{t+1}(s_t,a_t)=q_t(s_t,a_t)+\alpha_t[r_{t+1}+\gamma\max_{a'}q_t(s_{t+1},a')-q_t(s_t,a_t)]$$</div>
+    </div>
+  </div>
+
+  <div class="insight">
+    <span class="lab">核心洞见</span><br>
+    第 7 章把第 5 章的 model-free 采样和第 6 章的随机近似合在一起：用样本构造 Bellman target，然后在线更新。Sarsa 系列主要求给定策略的 Bellman equation，Q-learning 直接求 Bellman optimality equation；它们的灵魂差别都藏在 target 里。
+  </div>
+
+  <h2>核心概念（结论速记）</h2>
+  <div class="tags">
+    <span class="tag">TD target</span><span class="tag">TD error</span>
+    <span class="tag">bootstrapping</span><span class="tag">online update</span>
+    <span class="tag">Sarsa</span><span class="tag">Expected Sarsa</span>
+    <span class="tag">n-step Sarsa</span><span class="tag">Q-learning</span>
+    <span class="tag">on-policy / off-policy</span><span class="tag">behavior / target policy</span>
+  </div>
+
+  <h2>上接 / 下启</h2>
+  <p><strong>上接 Ch6：</strong>第 6 章讲随机近似的通用形状 $w\leftarrow w+\alpha(\text{sample target}-w)$；第 7 章把它具体化为 Bellman target 的在线学习。</p>
+  <div class="next"><strong>下启 → <a href="./ch08.html">Ch8 Value Function Approximation</a>：</strong>
+    本章仍是假设可以存一张表 $v(s)$ 或 $q(s,a)$。下一章要解决状态/动作太多时怎么办：用函数近似把表格价值换成参数化函数。</div>
+
+</div>
+</body>
+</html>

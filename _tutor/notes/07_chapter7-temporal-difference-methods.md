@@ -2367,12 +2367,12 @@ $$
 
 | 概念 | 判断问题 | 例子 |
 |---|---|---|
-| on-policy | $\pi_b=\pi_T$ 吗？ | Sarsa、MC control |
-| off-policy | $\pi_b\neq\pi_T$ 也能学吗？ | Q-learning |
+| on-policy | $\pi_b=\pi_T$ 吗？ | Sarsa、MC control；原书 Algorithm 7.2 称作 Q-learning 的 on-policy implementation |
+| off-policy | $\pi_b\neq\pi_T$ 也能学吗？ | Q-learning 的本质能力；原书 Algorithm 7.3 是明确的 off-policy implementation |
 | online | 每拿到样本就更新吗？ | TD、Sarsa、在线 Q-learning |
 | offline | 等样本收集完再处理吗？ | MC、离线 Q-learning |
 
-Q-learning 是 off-policy，所以它可以 online，也可以 offline。
+Q-learning 在数学本质上是 off-policy：它解的是 Bellman optimality equation，target 里用 $\max_a q(s',a)$，不要求样本一定来自目标策略。但原书后面又把实现分成 on-policy version 和 off-policy version：前者用当前 $\epsilon$-greedy 策略自己采样并更新自己，后者把行为策略 $\pi_b$ 和 greedy 目标策略 $\pi_T$ 明确分开。
 
 ### 10. Algorithm 7.2 与 7.3：两种实现
 
@@ -2381,12 +2381,25 @@ Q-learning 是 off-policy，所以它可以 online，也可以 offline。
 这个版本用当前 $\epsilon$-greedy 策略采样，也把策略更新成 $\epsilon$-greedy。它看起来像 Sarsa，但更新 target 仍然是：
 
 $$
+\pi_{t+1}(a|s_t)
+=
+\begin{cases}
+1-\epsilon+\dfrac{\epsilon}{|\mathcal A(s_t)|},
+& a=\arg\max_b q_{t+1}(s_t,b),\\[4pt]
+\dfrac{\epsilon}{|\mathcal A(s_t)|},
+& \text{otherwise}.
+\end{cases}
+$$
+
+注意：这里的策略更新不是把策略变成纯 greedy，而是保留 $\epsilon$ 的随机探索。
+
+$$
 r_{t+1}
 +\gamma
 \max_{a'}q_t(s_{t+1},a').
 $$
 
-所以它和 Sarsa 的关键差别不是“采样时是否探索”，而是“更新 target 是否使用实际下一动作 $a_{t+1}$”。
+这里的 on-policy version 是原书的实现口径：行为策略就是当前正在维护的 $\epsilon$-greedy 策略，采样和策略更新绑在一起。它和 Sarsa 的关键差别不是“采样时是否探索”，而是“更新 target 是否使用实际下一动作 $a_{t+1}$”：Sarsa 用 $q(s_{t+1},a_{t+1})$，Q-learning 仍用 $\max_{a'}q(s_{t+1},a')$。
 
 **Algorithm 7.3：off-policy version。**
 
@@ -2417,7 +2430,7 @@ $$
 \text{otherwise}.
 $$
 
-目标策略可以是 greedy，而不是 $\epsilon$-greedy，因为它不负责生成样本；探索交给 $\pi_b$。
+目标策略可以是 greedy，而不是 $\epsilon$-greedy，因为它不负责生成样本；探索交给 $\pi_b$。如果行为策略是 $\epsilon$-greedy，而目标策略明确是 greedy，这就属于 off-policy implementation。
 
 ### 11. Figure 7.3：Q-learning 的路径学习例子
 

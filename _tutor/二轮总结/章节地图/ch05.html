@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ch5 地图 · 蒙特卡洛方法（问题驱动）</title>
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+<style>
+  :root{
+    --bg:#f6f8fa; --card:#fff; --ink:#1f2328; --muted:#59636e;
+    --accent:#0969da; --green:#1a7f37; --amber:#9a6700; --line:#d1d9e0;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+    line-height:1.75;}
+  .wrap{max-width:860px;margin:0 auto;padding:30px 20px 90px;}
+  h1{font-size:1.55rem;margin:0 0 2px;}
+  .sub{color:var(--muted);font-size:.9rem;margin:0 0 14px;}
+  .nav{display:flex;justify-content:space-between;font-size:.88rem;margin:0 0 18px;}
+  .nav a{color:var(--accent);text-decoration:none;}
+  .nav a.disabled{color:#aeb6bf;pointer-events:none;}
+  .mainq{background:linear-gradient(0deg,#fff8c5,#fffdf0);border:1px solid #eac54f;
+    border-left:5px solid var(--amber);border-radius:8px;padding:14px 16px;margin:0 0 8px;}
+  .mainq b{color:#7a5200;}
+  .chain{margin:14px 0;}
+  .qcard{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:0 0 14px;margin:0;box-shadow:0 1px 3px rgba(31,35,40,.07);overflow:hidden;}
+  .qhead{display:flex;align-items:flex-start;gap:10px;padding:13px 16px 6px;}
+  .qnum{flex:none;background:var(--accent);color:#fff;font-size:.78rem;font-weight:700;
+    border-radius:20px;padding:3px 11px;margin-top:2px;white-space:nowrap;}
+  .qtext{font-weight:650;font-size:1.06rem;}
+  .why{padding:2px 16px 0;color:#374151;}
+  .why .lab{color:var(--muted);font-size:.8rem;font-weight:700;letter-spacing:.04em;}
+  .concl{margin:12px 16px 0;background:#eef6ff;border:1px solid #cfe4ff;border-radius:8px;
+    padding:9px 13px;}
+  .concl .lab{color:var(--accent);font-size:.78rem;font-weight:700;margin-right:6px;}
+  .bridge{display:flex;flex-direction:column;align-items:center;color:var(--muted);
+    font-size:.9rem;margin:7px 0;}
+  .bridge .ar{color:var(--accent);font-size:1.25rem;line-height:1;}
+  .bridge .nq{background:#f0f3f6;border:1px dashed #aeb6bf;border-radius:18px;
+    padding:3px 12px;margin-top:3px;}
+  .bridge .nq b{color:var(--ink);}
+  .insight{background:#dafbe1;border:1px solid #aceebb;border-left:5px solid var(--green);
+    border-radius:8px;padding:12px 15px;margin:18px 0;}
+  .insight .lab{color:var(--green);font-weight:700;}
+  h2{font-size:1.12rem;margin:30px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px;}
+  .tags .tag{display:inline-block;background:#ddf4ff;color:#0a4c8b;border-radius:18px;
+    padding:3px 11px;font-size:.84rem;margin:3px 5px 3px 0;}
+  .next{background:#fff;border:1px solid var(--line);border-left:5px solid var(--green);
+    border-radius:8px;padding:12px 15px;}
+  .next a{color:var(--accent);text-decoration:none;font-weight:600;}
+  .reflink{color:var(--accent);text-decoration:none;}
+  code{background:#eaeef2;padding:1px 5px;border-radius:4px;font-size:.9em;}
+  /* 等价表达式分块布局 */
+  .formgrp{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:4px 18px 12px;margin-bottom:14px;box-shadow:0 1px 3px rgba(31,35,40,.07);}
+  .formgrp .gt{font-weight:650;font-size:1.04rem;margin:12px 0 2px;}
+  .form{padding:11px 0;border-top:1px solid #eef1f4;}
+  .form:first-of-type{border-top:none;}
+  .form .fh{display:flex;flex-wrap:wrap;align-items:baseline;gap:9px;margin-bottom:1px;}
+  .form .chip{flex:none;background:#eef6ff;color:#0a4c8b;border:1px solid #cfe4ff;
+    border-radius:16px;padding:2px 11px;font-size:.83rem;font-weight:600;white-space:nowrap;}
+  .form .use{color:var(--muted);font-size:.88rem;}
+  .form .fb{overflow-x:auto;overflow-y:hidden;padding:3px 2px;}
+  /* 对比表 */
+  table.ex{border-collapse:collapse;margin:8px 0;font-size:.9rem;width:100%;}
+  table.ex th,table.ex td{border:1px solid var(--line);padding:7px 11px;text-align:left;vertical-align:top;}
+  table.ex th{background:#f0f3f6;}
+  table.ex td.hl{background:#fff8c5;}
+  .cmpwrap{overflow-x:auto;}
+  .epilist{background:#f6f8fa;border:1px solid var(--line);border-radius:8px;padding:4px 14px;margin:6px 0;}
+  .epilist .er{display:flex;flex-wrap:nowrap;align-items:baseline;gap:10px;padding:7px 0;overflow-x:auto;}
+  .epilist .er + .er{border-top:1px solid #eef1f4;}
+  .epilist .lb{color:var(--accent);font-weight:600;white-space:nowrap;flex:none;}
+  .epilist .ch{white-space:nowrap;}
+  /* 结构化思路（痛点/观察/提速/代价） */
+  .steps{margin:6px 0 0;}
+  .steps .it{display:flex;gap:10px;padding:7px 0;align-items:baseline;}
+  .steps .it + .it{border-top:1px dashed #eef1f4;}
+  .steps .k{flex:none;min-width:64px;font-weight:700;font-size:.8rem;color:#fff;
+    border-radius:6px;padding:3px 9px;text-align:center;line-height:1.3;}
+  .steps .tx{flex:1;min-width:0;}
+  .steps .ref{color:var(--muted);font-size:.84rem;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Ch5 · 蒙特卡洛方法（Monte Carlo）</h1>
+  <div class="sub">问题驱动地图 · <a class="reflink" href="../../notes/05_chapter5-monte-carlo-methods.md">章笔记</a> · <a class="reflink" href="../00_全书地图与问题链.md">全局地图</a></div>
+  <div class="nav">
+    <a href="./ch04.html">← 上一章：值迭代 / 策略迭代</a>
+    <a href="./ch06.html">下一章：随机近似 →</a>
+  </div>
+
+  <div class="mainq">
+    <b>本章主问题：</b>模型 $p,r$ <strong>未知</strong>时，GPI 里那一步「算 $q_\pi(s,a)$」算不出来了，怎么办？<br>
+    <span style="color:#7a5200">一句话答案：$q$ 本质是期望回报 → 用<strong>样本回报的平均</strong>估。三个 MC 算法是「核心思想 → 为样本效率与现实可用性逐步加机制」的一条链。</span>
+  </div>
+
+  <div class="chain">
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 1</span>
+        <span class="qtext">没有模型，$q_\pi(s,a)$ 怎么估？</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        $q_\pi(s,a)=\mathbb E[G_t\mid s,a]$ 是个<strong>期望</strong>，缺 $p,r$ 算不了，但能<strong>采样估计</strong>：从 $(s,a)$ 出发跑很多条 episode，回报取平均。大数定律保证无偏、方差按 $1/n$ 下降（前提：样本 i.i.d.）。</div>
+      <div class="concl"><span class="lab">结论</span> $q_\pi(s,a)\approx\dfrac1n\sum_{i=1}^n g^{(i)}(s,a)$，$\;n\to\infty$ 收敛</div>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>把它塞进策略迭代，是什么算法？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 2 · MC Basic</span>
+        <span class="qtext">免模型版的策略迭代</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        GPI 的评估步从「精确算 $q$」换成「采样平均估 $q$」，改进步不变（对 $q$ 贪心）。<strong>易错</strong>：必须<strong>直接估 $q$、不估 $v$</strong>——若只估 $v$，改进时又要用模型把 $v$ 转 $q$。<strong>局限</strong>：每个 $(s,a)$ 单独收集很多 episode、且只用起点（initial-visit），样本效率很低。</div>
+      <div class="concl"><span class="lab">结论</span> 评估：$q_k(s,a)\leftarrow$ 回报平均（initial-visit）；改进：$\pi_{k+1}=\arg\max_a q_k(s,a)$</div>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">MC Basic 的完整更新过程：先评估整张 $q_k$ 表，再统一改策略</div>
+      <p style="margin:4px 0"><strong>第 $k$ 轮开始时先冻结当前策略 $\pi_k$</strong>。这一轮里所有 episode 的后续动作都按 $\pi_k$ 走；不要一采到一条 episode 就立刻把策略改掉，否则就不是 MC Basic，而是后面的逐 episode 更新思想。</p>
+      <table class="ex">
+        <tr><th>阶段</th><th>做什么</th><th>产物</th></tr>
+        <tr><td>1. 固定策略</td><td>拿当前策略 $\pi_k$ 当“被评估对象”</td><td>$\pi_k$ 在本轮评估期间不变</td></tr>
+        <tr><td>2. 对每个 $(s,a)$ 单独采样</td><td>从这个 $(s,a)$ 作为 episode 起点出发，后面一直跟随 $\pi_k$，采很多条完整 episode</td><td>一批回报 $g_{\pi_k}^{(1)}(s,a),\dots,g_{\pi_k}^{(n)}(s,a)$</td></tr>
+        <tr><td>3. 求样本平均</td><td>只用这些 episode 的<strong>起点回报</strong>估这个起点的动作值</td><td>$q_k(s,a)=\dfrac1n\sum_{i=1}^{n}g_{\pi_k}^{(i)}(s,a)$</td></tr>
+        <tr><td>4. 全部估完后改进</td><td>等所有动作值都填进 $q_k$ 表，再对每个状态选最大动作</td><td>$\pi_{k+1}(s)=\arg\max_a q_k(s,a)$</td></tr>
+        <tr><td>5. 进入下一轮</td><td>用新策略 $\pi_{k+1}$ 重新采样、重新估 $q_{\pi_{k+1}}$</td><td>$k\leftarrow k+1$</td></tr>
+      </table>
+      <p style="margin:8px 0 4px">补一句很容易误会的地方：<strong>“很多条完整 episode”不要求终点一样</strong>。只要它们都从同一个 $(s,a)$ 起步、后面都按同一个 $\pi_k$ 走，就都是估计同一个 $q_{\pi_k}(s,a)$ 的样本。</p>
+      <p style="margin:4px 0">例如第 $k$ 轮固定 $\pi_k$ 后，从同一个起点 $(s,a_R)$ 采到三条不一样的轨迹：</p>
+      <div class="epilist">
+        <div class="er"><span class="lb">episode 1：</span><span class="ch">$(s,a_R)\to s_2\to s_5\to \text{target}$，return $=5$</span></div>
+        <div class="er"><span class="lb">episode 2：</span><span class="ch">$(s,a_R)\to s_3\to \text{pit}$，return $=-2$</span></div>
+        <div class="er"><span class="lb">episode 3：</span><span class="ch">$(s,a_R)\to s_4\to s_6\to \text{timeout}$，return $=1$</span></div>
+      </div>
+      <p style="margin:4px 0">终点、长度、奖励都可以不同；MC Basic 只把它们看成同一个条件「从 $(s,a_R)$ 出发并跟随 $\pi_k$」下的三次 return 抽样：</p>
+      <div class="fb">$$q_k(s,a_R)=\frac{5+(-2)+1}{3}=\frac{4}{3}.$$</div>
+      <p style="margin:8px 0 4px">再和另一个动作比较。假设从 $(s,a_L)$ 起步采到 3 条 return 为 $1,\;2,\;0$：</p>
+      <table class="ex">
+        <tr><th>起点</th><th>3 条 episode 的 return</th><th>MC Basic 评估得到</th></tr>
+        <tr><td>$(s,a_L)$</td><td>$1,\;2,\;0$</td><td>$q_k(s,a_L)=\dfrac{1+2+0}{3}=1$</td></tr>
+        <tr><td>$(s,a_R)$</td><td>$5,\;-2,\;1$</td><td>$q_k(s,a_R)=\dfrac{5-2+1}{3}=\dfrac43$</td></tr>
+      </table>
+      <p style="margin:4px 0">所以本轮策略改进是：</p>
+      <div class="fb">$$\pi_{k+1}(s)=a_R,\qquad \text{因为 }q_k(s,a_R)=\frac43>q_k(s,a_L)=1.$$</div>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">关键纠错：MC Basic 的“更新”不是一条 episode 更新一次策略；它是一轮里先把当前策略 $\pi_k$ 的动作值估出来，再用估好的整张 $q_k$ 表生成下一轮策略 $\pi_{k+1}$。</p>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>一条 episode 路过很多 $(s,a)$，只用起点太浪费？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 3 · MC Exploring Starts</span>
+        <span class="qtext">把一条 episode 榨干 + 早点更新</span></div>
+      <div class="why"><span class="lab">思路</span>
+        <div class="steps">
+          <div class="it"><span class="k" style="background:#cf222e">痛点</span><span class="tx">MC Basic 跑出一条长轨迹，却只估<strong>起点那一个</strong> $(s,a)$（initial-visit），沿途其它 $(s,a)$ 全浪费。</span></div>
+          <div class="it"><span class="k" style="background:#9a6700">关键观察</span><span class="tx">从轨迹<strong>任意位置往后截一段</strong>，就是「从那个 $(s,a)$ 出发」的合法子 episode。<span class="ref">↓ 见下方原书图示：一条拆出 4 条</span></span></div>
+          <div class="it"><span class="k" style="background:#1a7f37">提速①</span><span class="tx"><strong>every-visit</strong>：每个后缀都当样本，反向递推 $G_t=R_{t+1}+\gamma G_{t+1}$ 一趟更新沿途所有 $(s,a)$。<span class="ref">↓ 见下方例子：一条喂 3 个，回报 $1.25/2.5/1$</span></span></div>
+          <div class="it"><span class="k" style="background:#1a7f37">提速②</span><span class="tx"><strong>逐 episode 更新</strong>：跑完一条就立刻把这些 $G_t$ 加进 $\mathrm{Returns}/\mathrm{Num}$，更新 $q$ 与贪心策略，不像 MC Basic 要为一个 $(s,a)$ 先攒一批。<span class="ref">↓ 见下方合并例子：算完 $G$ 后马上改 $q,\pi$</span></span></div>
+          <div class="it"><span class="k" style="background:#6e7781">代价</span><span class="tx">仍需 <strong>exploring starts</strong>（每个 $(s,a)$ 都可能当起点），现实做不到 → 下一步解决。</span></div>
+        </div>
+      </div>
+      <div class="concl"><span class="lab">结论</span> every-visit + 反向递推 $G$ + 逐 episode 更新；前提仍是 exploring starts</div>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">一条 episode 不只服务于起点（原书图示）</div>
+      <p style="margin:4px 0">采到一条 episode（下标是<strong>状态/动作编号</strong>，不是时间步）：</p>
+      <div class="epilist">
+        <div class="er"><span class="lb">原始：</span><span class="ch">$s_1 \xrightarrow{a_2} s_2 \xrightarrow{a_4} s_1 \xrightarrow{a_2} s_2 \xrightarrow{a_3} s_5 \xrightarrow{a_1} \cdots$</span></div>
+      </div>
+      <p style="margin:4px 0">它一路访问了 $(s_1,a_2),(s_2,a_4),(s_2,a_3),(s_5,a_1)\dots$。从<strong>任意中间位置往后截一段</strong>，都是「从该 $(s,a)$ 出发」的一条子 episode：</p>
+      <div class="epilist">
+        <div class="er"><span class="lb">从 $(s_2,a_4)$ 起：</span><span class="ch">$s_2 \xrightarrow{a_4} s_1 \xrightarrow{a_2} s_2 \xrightarrow{a_3} s_5 \xrightarrow{a_1} \cdots$</span></div>
+        <div class="er"><span class="lb">从 $(s_1,a_2)$ 起：</span><span class="ch">$s_1 \xrightarrow{a_2} s_2 \xrightarrow{a_3} s_5 \xrightarrow{a_1} \cdots$</span></div>
+        <div class="er"><span class="lb">从 $(s_2,a_3)$ 起：</span><span class="ch">$s_2 \xrightarrow{a_3} s_5 \xrightarrow{a_1} \cdots$</span></div>
+        <div class="er"><span class="lb">从 $(s_5,a_1)$ 起：</span><span class="ch">$s_5 \xrightarrow{a_1} \cdots$</span></div>
+      </div>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">MC Basic 只用「原始」这一条（initial-visit，只估起点 $(s_1,a_2)$）；every-visit 把每条子 episode 都当样本用上。</p>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">把两个提速合起来算一遍：一条 episode 反向算 $G$，然后立刻更新 $q,\pi$</div>
+      <p style="margin:4px 0">采到这一条 episode：</p>
+      <div class="fb">$$s_A\xrightarrow{a_R}s_B\xrightarrow{a_U}s_C\xrightarrow{a_L}s_D$$</div>
+      <p style="margin:4px 0">奖励与折扣为 $r_1=0,\;r_2=2,\;r_3=1,\;\gamma=0.5$。从末尾往前用</p>
+      <div class="fb">$$G_t=R_{t+1}+\gamma G_{t+1}$$</div>
+      <p style="margin:4px 0">逐步算出每个 visit 后面的 return：</p>
+      <div class="fb">$$
+\begin{aligned}
+G_2 &= r_3 = 1,\\
+G_1 &= r_2+\gamma G_2 = 2+0.5\cdot1 = 2.5,\\
+G_0 &= r_1+\gamma G_1 = 0+0.5\cdot2.5 = 1.25.
+\end{aligned}
+$$</div>
+      <table class="ex">
+        <tr><th>时间步</th><th>visit $(s_t,a_t)$</th><th>后缀回报</th><th>提速①：这条 episode 同时喂给</th></tr>
+        <tr><td>$t=0$</td><td>$(s_A,a_R)$</td><td>$G_0=1.25$</td><td>$q(s_A,a_R)$</td></tr>
+        <tr><td>$t=1$</td><td>$(s_B,a_U)$</td><td>$G_1=2.5$</td><td>$q(s_B,a_U)$</td></tr>
+        <tr><td>$t=2$</td><td>$(s_C,a_L)$</td><td>$G_2=1$</td><td>$q(s_C,a_L)$</td></tr>
+      </table>
+      <p style="margin:8px 0 4px">接着<strong>不等下一批样本</strong>，立刻做累计平均。假设这条 episode 来之前已有下面的累计量：</p>
+      <table class="ex">
+        <tr><th>$(s,a)$</th><th>旧 $\mathrm{Returns}$</th><th>旧 $\mathrm{Num}$</th><th>新样本 $G$</th><th>新 $q=\dfrac{\mathrm{Returns}+G}{\mathrm{Num}+1}$</th></tr>
+        <tr><td>$(s_A,a_R)$</td><td>$2.00$</td><td>$2$</td><td>$1.25$</td><td>$q=\dfrac{2.00+1.25}{3}=1.083$</td></tr>
+        <tr><td>$(s_B,a_U)$</td><td>$3.00$</td><td>$2$</td><td>$2.50$</td><td>$q=\dfrac{3.00+2.50}{3}=1.833$</td></tr>
+        <tr><td>$(s_C,a_L)$</td><td>$0$</td><td>$0$</td><td>$1.00$</td><td>$q=\dfrac{0+1.00}{1}=1.000$</td></tr>
+      </table>
+      <p style="margin:8px 0 4px">然后马上对访问到的状态做贪心改进。比如其它动作当前估计为 $q(s_A,a_L)=0.90,\;q(s_B,a_D)=1.70,\;q(s_C,a_R)=1.20$，则本条 episode 后：</p>
+      <table class="ex">
+        <tr><th>状态</th><th>比较</th><th>提速②：本 episode 后立刻得到的新策略</th></tr>
+        <tr><td>$s_A$</td><td>$q(s_A,a_R)=1.083 > q(s_A,a_L)=0.90$</td><td>$\pi(s_A)=a_R$</td></tr>
+        <tr><td>$s_B$</td><td>$q(s_B,a_U)=1.833 > q(s_B,a_D)=1.70$</td><td>$\pi(s_B)=a_U$</td></tr>
+        <tr><td>$s_C$</td><td>$q(s_C,a_L)=1.000 < q(s_C,a_R)=1.20$</td><td>$\pi(s_C)=a_R$（不改）</td></tr>
+      </table>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">所以两个提速是连在一起的：先用 every-visit 把一条轨迹拆成多个可更新的后缀 return；再在同一个 episode 结束后，马上用这些 return 更新平均值和贪心策略。</p>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>怎么彻底去掉「exploring starts」这个不现实的假设？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 4 · MC ε-Greedy</span>
+        <span class="qtext">用 soft policy 替代 exploring starts</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        让策略<strong>本身处处带探索</strong>（soft policy）：$\epsilon$-greedy 每个动作概率都 $>0$，不靠安排起点也能访问到所有 $(s,a)$。算法主体<strong>仍是 every-visit MC</strong>，唯一改动是把策略改进从 greedy 换成 $\epsilon$-greedy。</div>
+      <div class="concl"><span class="lab">结论</span> 改进步 greedy → $\epsilon$-greedy；其余照搬，exploring starts 被移除</div>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>加 $\epsilon$ 探索的代价是什么？收敛到谁？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 5</span>
+        <span class="qtext">$\epsilon$ 带来的探索–利用权衡</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        $\epsilon$ 越大探索越强，但策略被迫保留随机动作，<strong>最优性越差</strong>。它收敛到的是「$\epsilon$-greedy 策略集合 $\Pi_\epsilon$ 内的最优」，<strong>不一定等于</strong>全体策略里的纯贪心最优。实践：$\epsilon$ 先大后衰减。</div>
+      <div class="concl"><span class="lab">结论</span> $\epsilon\uparrow$：探索↑ / 最优性↓；收敛到 $\Pi_\epsilon$ 内最优 $\ne$ greedy 最优（除非 $\epsilon\to0$）</div>
+    </div>
+
+  </div>
+
+  <h2>易混点对比表（章节地图的重点）</h2>
+
+  <p style="margin:2px 0">① <strong>三个 MC 算法</strong>——每一个比上一个多加了什么机制：</p>
+  <div class="cmpwrap">
+  <table class="ex">
+    <tr><th>算法</th><th>样本利用</th><th>探索机制</th><th>策略改进</th><th>相比上一个，增强了什么</th></tr>
+    <tr><td><b>MC Basic</b></td><td>initial-visit + 批量评估后更新</td><td>依赖 exploring starts</td><td>greedy</td><td>奠基：用 return 平均估 $q$，估完整张表再贪心</td></tr>
+    <tr><td><b>MC Exploring Starts</b></td><td class="hl">every-visit + 逐 episode 更新</td><td>依赖 exploring starts</td><td>greedy</td><td class="hl">样本效率↑（一条轨迹更新沿途所有 $(s,a)$）</td></tr>
+    <tr><td><b>MC ε-Greedy</b></td><td>every-visit + 逐 episode 更新</td><td class="hl">soft policy（$\epsilon$-greedy）</td><td>$\epsilon$-greedy</td><td class="hl">沿用 MC ES 的更新节奏；把 exploring starts 换成 soft policy（现实可用）</td></tr>
+  </table>
+  </div>
+
+  <p style="margin:14px 0 2px">② <strong>三种 visit 策略</strong>——「一条 episode 里同一 $(s,a)$ 怎么数」（最常混的点）：</p>
+  <div class="cmpwrap">
+  <table class="ex">
+    <tr><th>策略</th><th>用哪些访问</th><th>谁采用</th><th>样本效率</th></tr>
+    <tr><td>initial-visit 初始访问</td><td>只用整条 episode 的<strong>起点</strong> $(s,a)$</td><td>MC Basic</td><td>最低</td></tr>
+    <tr><td>first-visit 首次访问</td><td>每个 $(s,a)$ 在本条里<strong>第一次</strong>出现时用</td><td>—</td><td>中</td></tr>
+    <tr><td>every-visit 每次访问</td><td>$(s,a)$ <strong>每次</strong>出现都用</td><td>MC ES / ε-Greedy</td><td>最高（但样本可能相关）</td></tr>
+  </table>
+  </div>
+  <p style="margin:4px 0;color:var(--muted);font-size:.88rem">⚠️ first-visit ≠ initial-visit：前者管「每个 $(s,a)$ 的首次」，后者只管「整条 episode 的起点」。</p>
+
+  <h2>关键公式（结论附带）</h2>
+
+  <div class="formgrp">
+    <div class="gt">估计 $q_\pi(s,a)$ 的两种方式</div>
+    <div class="form">
+      <div class="fh"><span class="chip">model-based（期望式）</span><span class="use">Ch4 用：需要模型 $p,r$</span></div>
+      <div class="fb">$$q_\pi(s,a)=\sum_r p(r\mid s,a)r+\gamma\sum_{s'}p(s'\mid s,a)v_\pi(s')$$</div>
+    </div>
+    <div class="form">
+      <div class="fh"><span class="chip">model-free（MC 样本平均）</span><span class="use">本章的核心替换：免模型</span></div>
+      <div class="fb">$$q_\pi(s,a)\approx\frac1n\sum_{i=1}^n g^{(i)}(s,a)$$</div>
+    </div>
+  </div>
+
+  <div class="formgrp">
+    <div class="gt">$\epsilon$-greedy 策略</div>
+    <div class="form">
+      <div class="fh"><span class="chip">$\epsilon$-greedy</span><span class="use">$|\mathcal A(s)|$ 为动作数；贪心动作概率最高，其余均分 $\epsilon$</span></div>
+      <div class="fb">$$\pi(a\mid s)=\begin{cases}1-\epsilon+\dfrac{\epsilon}{|\mathcal A(s)|}, & a=\arg\max_{a'}q(s,a')\\[2mm]\dfrac{\epsilon}{|\mathcal A(s)|}, & \text{其它动作}\end{cases}$$</div>
+    </div>
+  </div>
+
+  <div class="insight">
+    <span class="lab">核心洞见</span><br>
+    一句话：<strong>价值估计 = 回报的均值估计</strong>。MC 把 GPI 里「需模型的期望」换成「样本回报平均」，其余照搬第 4 章。三个算法是一条<strong>逐步增强</strong>的链：MC Basic（奠基）→ MC ES（样本效率）→ MC ε-Greedy（去掉 exploring starts）。它们的<strong>共同根本局限</strong>：某个 visit 的 $G_t$ 要等它后面的奖励都看完才能算；episodic 任务里通常是<strong>本条 episode 结束后</strong>反向算 $G$，然后可以立刻逐 episode 更新——这正是下一步 TD 要突破的。
+  </div>
+
+  <h2>核心概念（结论速记）</h2>
+  <div class="tags">
+    <span class="tag">价值估计 = 回报均值估计</span><span class="tag">大数定律（i.i.d.）</span>
+    <span class="tag">MC Basic</span><span class="tag">MC Exploring Starts</span><span class="tag">MC ε-Greedy</span>
+    <span class="tag">initial/first/every-visit</span><span class="tag">exploring starts</span>
+    <span class="tag">soft policy / ε-greedy</span><span class="tag">探索 vs 利用</span>
+  </div>
+
+  <h2>上接 / 下启</h2>
+  <p><strong>上接 Ch4：</strong>同样是 GPI（评估↔改进），只把评估从「精确计算」换成「采样平均」，从而摆脱模型。</p>
+  <div class="next"><strong>下启 → <a href="./ch06.html">Ch6 随机近似</a>：</strong>
+    「用带噪声的样本一点点逼近期望/真值」背后的<strong>数学保证</strong>是什么？答案是随机近似（RM / SGD），它将成为 TD、函数近似、策略梯度所有「增量更新」收敛性的统一地基。</div>
+
+</div>
+</body>
+</html>

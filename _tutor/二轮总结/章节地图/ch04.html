@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ch4 地图 · 值迭代与策略迭代（问题驱动）</title>
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+<style>
+  :root{
+    --bg:#f6f8fa; --card:#fff; --ink:#1f2328; --muted:#59636e;
+    --accent:#0969da; --green:#1a7f37; --amber:#9a6700; --line:#d1d9e0;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+    line-height:1.75;}
+  .wrap{max-width:860px;margin:0 auto;padding:30px 20px 90px;}
+  h1{font-size:1.55rem;margin:0 0 2px;}
+  .sub{color:var(--muted);font-size:.9rem;margin:0 0 14px;}
+  .nav{display:flex;justify-content:space-between;font-size:.88rem;margin:0 0 18px;}
+  .nav a{color:var(--accent);text-decoration:none;}
+  .nav a.disabled{color:#aeb6bf;pointer-events:none;}
+  .mainq{background:linear-gradient(0deg,#fff8c5,#fffdf0);border:1px solid #eac54f;
+    border-left:5px solid var(--amber);border-radius:8px;padding:14px 16px;margin:0 0 8px;}
+  .mainq b{color:#7a5200;}
+  .chain{margin:14px 0;}
+  .qcard{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:0 0 14px;margin:0;box-shadow:0 1px 3px rgba(31,35,40,.07);overflow:hidden;}
+  .qhead{display:flex;align-items:flex-start;gap:10px;padding:13px 16px 6px;}
+  .qnum{flex:none;background:var(--accent);color:#fff;font-size:.78rem;font-weight:700;
+    border-radius:20px;padding:3px 11px;margin-top:2px;white-space:nowrap;}
+  .qtext{font-weight:650;font-size:1.06rem;}
+  .why{padding:2px 16px 0;color:#374151;}
+  .why .lab{color:var(--muted);font-size:.8rem;font-weight:700;letter-spacing:.04em;}
+  .concl{margin:12px 16px 0;background:#eef6ff;border:1px solid #cfe4ff;border-radius:8px;
+    padding:9px 13px;}
+  .concl .lab{color:var(--accent);font-size:.78rem;font-weight:700;margin-right:6px;}
+  .bridge{display:flex;flex-direction:column;align-items:center;color:var(--muted);
+    font-size:.9rem;margin:7px 0;}
+  .bridge .ar{color:var(--accent);font-size:1.25rem;line-height:1;}
+  .bridge .nq{background:#f0f3f6;border:1px dashed #aeb6bf;border-radius:18px;
+    padding:3px 12px;margin-top:3px;}
+  .bridge .nq b{color:var(--ink);}
+  .insight{background:#dafbe1;border:1px solid #aceebb;border-left:5px solid var(--green);
+    border-radius:8px;padding:12px 15px;margin:18px 0;}
+  .insight .lab{color:var(--green);font-weight:700;}
+  h2{font-size:1.12rem;margin:30px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px;}
+  .tags .tag{display:inline-block;background:#ddf4ff;color:#0a4c8b;border-radius:18px;
+    padding:3px 11px;font-size:.84rem;margin:3px 5px 3px 0;}
+  .next{background:#fff;border:1px solid var(--line);border-left:5px solid var(--green);
+    border-radius:8px;padding:12px 15px;}
+  .next a{color:var(--accent);text-decoration:none;font-weight:600;}
+  .reflink{color:var(--accent);text-decoration:none;}
+  code{background:#eaeef2;padding:1px 5px;border-radius:4px;font-size:.9em;}
+  /* 等价表达式分块布局 */
+  .formgrp{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:4px 18px 12px;margin-bottom:14px;box-shadow:0 1px 3px rgba(31,35,40,.07);}
+  .formgrp .gt{font-weight:650;font-size:1.04rem;margin:12px 0 2px;}
+  .form{padding:11px 0;border-top:1px solid #eef1f4;}
+  .form:first-of-type{border-top:none;}
+  .form .fh{display:flex;flex-wrap:wrap;align-items:baseline;gap:9px;margin-bottom:1px;}
+  .form .chip{flex:none;background:#eef6ff;color:#0a4c8b;border:1px solid #cfe4ff;
+    border-radius:16px;padding:2px 11px;font-size:.83rem;font-weight:600;white-space:nowrap;}
+  .form .use{color:var(--muted);font-size:.88rem;}
+  .form .fb{overflow-x:auto;overflow-y:hidden;padding:3px 2px;}
+  /* 例子表格 */
+  table.ex{border-collapse:collapse;margin:10px 0;font-size:.92rem;}
+  table.ex th,table.ex td{border:1px solid var(--line);padding:6px 13px;text-align:center;}
+  table.ex th{background:#f0f3f6;}
+  table.ex td.hl{background:#fff8c5;font-weight:600;}
+  .setup{background:#f6f8fa;border:1px dashed var(--line);border-radius:8px;padding:10px 14px;margin:10px 0;}
+  /* 一根轴：VI — 截断 — PI */
+  .axisbox{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px 14px;margin:6px 0 14px;box-shadow:0 1px 3px rgba(31,35,40,.07);}
+  .axis{position:relative;margin:6px 4px 2px;}
+  .axis .axisline{position:absolute;left:8%;right:8%;top:8px;height:3px;
+    background:linear-gradient(90deg,#0969da,#9a6700,#1a7f37);border-radius:2px;}
+  .axis .pts{position:relative;display:flex;justify-content:space-between;}
+  .axis .pt{display:flex;flex-direction:column;align-items:center;text-align:center;width:32%;}
+  .axis .dot{width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid #0969da;margin-bottom:6px;}
+  .axis .pt:nth-child(2) .dot{border-color:#9a6700;}
+  .axis .pt:last-child .dot{border-color:#1a7f37;}
+  .axis .pt b{font-size:.96rem;}
+  .axis .pt span{color:var(--muted);font-size:.83rem;}
+  .axis .ends{display:flex;justify-content:space-between;color:var(--muted);font-size:.8rem;margin-top:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Ch4 · 值迭代与策略迭代（动态规划 DP）</h1>
+  <div class="sub">问题驱动地图 · <a class="reflink" href="../../notes/04_chapter4-value-iteration-and-policy-iteration.md">章笔记</a> · <a class="reflink" href="../../notes/04_supplement-value-iteration-vs-policy-iteration.md">VI vs PI 同例对比</a> · <a class="reflink" href="../00_全书地图与问题链.md">全局地图</a></div>
+  <div class="nav">
+    <a href="./ch03.html">← 上一章：最优策略与 BOE</a>
+    <a href="./ch05.html">下一章：蒙特卡洛 →</a>
+  </div>
+
+  <div class="mainq">
+    <b>本章主问题：</b>模型 $p,r$ <strong>已知</strong>时，怎么把上一章「反复套 $f$ 必收敛」变成<strong>可执行算法</strong>？有哪几种、什么关系？<br>
+    <span style="color:#7a5200">答案是一族算法：值迭代、策略迭代、截断策略迭代——它们其实是同一个框架（GPI）上「评估走几步」的不同取值。</span>
+  </div>
+
+  <div class="chain">
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 1</span>
+        <span class="qtext">怎么把「不动点迭代 $v=f(v)$」落成可执行算法？</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        上一章证明了 $v_{k+1}=f(v_k)$ 必收敛到 $v^*$。把每一次 $f$ 拆成两小步：先对每个状态算所有动作的 $q_k(s,a)$，再<strong>取最大</strong>更新 $v$；收敛后对 $q$ 贪心得到 $\pi^*$。这就是<strong>值迭代</strong>。<br>
+        ⚠️ 易错：迭代中的 $v_k$ <strong>不是</strong>某个策略的状态值，$q_k$ 也不是动作值——它们只是逼近 $v^*$ 的中间量。</div>
+      <div class="concl"><span class="lab">结论（值迭代，算法 4.1）</span> $q_k(s,a)=\sum_r p\,r+\gamma\sum_{s'}p\,v_k(s')$；$\;v_{k+1}(s)=\max_a q_k(s,a)$</div>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>值迭代每轮只「套一下 $f$」，评估很浅——能不能把评估做透？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 2</span>
+        <span class="qtext">能不能每轮先把策略评估做到收敛，再改进？</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        可以，这就是<strong>策略迭代</strong>：① 评估——把当前策略 $\pi_k$ 的 $v_{\pi_k}$ 算到底（解 Ch2 的贝尔曼方程）；② 改进——对 $v_{\pi_k}$ 贪心得到更好的 $\pi_{k+1}$。两步交替。<strong>Lemma 4.1</strong> 保证每次改进「不会变差」，于是策略单调变好、有限步内收敛到 $\pi^*$。</div>
+      <div class="concl"><span class="lab">结论（策略迭代，算法 4.2）</span> ① 评估：解 $(I-\gamma P_{\pi_k})v=r_{\pi_k}$ 得 $v_{\pi_k}$；② 由 $v_{\pi_k}$ 算动作值 $q_{\pi_k}(s,a)=\sum_r p(r\mid s,a)r+\gamma\sum_{s'}p(s'\mid s,a)v_{\pi_k}(s')$；③ 改进：$\pi_{k+1}(s)=\arg\max_a q_{\pi_k}(s,a)$</div>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>VI 评估走 1 步、PI 评估走到底——这俩是什么关系？中间有没有折中？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 3</span>
+        <span class="qtext">VI 和 PI 是两回事吗？有没有中间地带？</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        关键洞见：它们差别<strong>只在策略评估走几步</strong>。值迭代评估只走 <strong>1 步</strong>，策略迭代评估走 <strong>到收敛（∞ 步）</strong>。中间取 <strong>$j$ 步</strong>就得到<strong>截断策略迭代</strong>——最实用。<strong>Proposition 4.1</strong> 保证截断后价值仍然改进。所以三者是<strong>同一根轴上的三个点</strong>，不是三个孤立算法。</div>
+      <div class="concl"><span class="lab">结论</span> 值迭代（评估 1 步）— 截断 PI（评估 $j$ 步）— 策略迭代（评估 $\infty$ 步），同一骨架</div>
+    </div>
+
+    <div class="axisbox">
+      <div style="font-weight:650;margin-bottom:6px">同一根轴：策略评估「走几步」</div>
+      <div class="axis">
+        <div class="axisline"></div>
+        <div class="pts">
+          <div class="pt"><div class="dot"></div><b>值迭代 VI</b><span>评估 1 步</span></div>
+          <div class="pt"><div class="dot"></div><b>截断 PI</b><span>评估 $j$ 步</span></div>
+          <div class="pt"><div class="dot"></div><b>策略迭代 PI</b><span>评估 $\infty$ 步</span></div>
+        </div>
+        <div class="ends"><span>← 评估浅 · 每轮便宜 · 收敛轮数多</span><span>评估深 · 每轮贵 · 收敛轮数少 →</span></div>
+      </div>
+      <table class="ex" style="width:100%;margin-top:14px">
+        <tr><th>算法</th><th>评估走几步</th><th>每轮代价</th><th>收敛所需轮数</th><th>轴上位置</th></tr>
+        <tr><td>值迭代 VI</td><td>1 步</td><td>低</td><td>多（慢慢逼近）</td><td>左端点</td></tr>
+        <tr><td>截断 PI</td><td>$j$ 步</td><td>中</td><td>中</td><td class="hl">中间（最实用）</td></tr>
+        <tr><td>策略迭代 PI</td><td>$\infty$ 步（到收敛）</td><td>高</td><td>少（一步到位）</td><td>右端点</td></tr>
+      </table>
+      <p style="margin:8px 0 0;color:var(--muted);font-size:.88rem">三者不是三个孤立算法，而是「评估做多透」这根连续轴上的三个取值。前面的手算例子正好印证：VI 慢慢爬向 $[2,2]$，PI 一步到位。</p>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>能不能用一个统一框架概括这三个？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 4</span>
+        <span class="qtext">这三个能统一成一个框架吗？</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        能——<strong>广义策略迭代 (GPI)</strong>：只要「策略评估」和「策略改进」这两个过程交替进行，不管评估做多透，都会被推向最优。这是第 4 章真正留给全书的东西：后面 MC、TD、actor-critic 全都是 GPI 的不同实例（只是评估手段从「精确计算」换成「采样估计」）。</div>
+      <div class="concl"><span class="lab">结论</span> GPI = 评估 $\circlearrowright$ 改进 两过程交替 → 收敛到最优</div>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>这一章所有算法都默默假设了什么？这个假设现实吗？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 5</span>
+        <span class="qtext">本章算法的共同前提与局限是什么？</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        值迭代、策略迭代都要算 $\sum_{s'}p(s'\mid s,a)v(s')$ 和 $r$——<strong>必须知道模型 $p,r$</strong>。这类「有地图、直接规划」的方法叫 <strong>model-based</strong>。现实里环境模型几乎总是未知，这就逼出下一章：把「需要模型的期望」换成「采样平均」，进入 <strong>model-free</strong>。<br>
+        ⚠️ 别把 model-based/free 与 on/off-policy 混：前者问「要不要模型」，后者问「采样策略=目标策略吗」。</div>
+      <div class="concl"><span class="lab">结论</span> 本章 = model-based（需要 $p,r$）；下一章起转向 model-free</div>
+    </div>
+
+  </div>
+
+  <h2>三个算法其实是一族（评估走几步的不同）</h2>
+  <p class="sub" style="margin-top:-4px">同一个「评估 + 改进」骨架，只改「策略评估迭代几步」，就得到三种算法。</p>
+
+  <div class="formgrp">
+    <div class="gt">统一骨架：评估 ↔ 改进，区别只在评估步数</div>
+    <div class="form">
+      <div class="fh"><span class="chip">值迭代 VI</span><span class="use">评估走 1 步 · 每轮最省 · GPI 的一个端点</span></div>
+      <div class="fb">$$v_{k+1}(s)=\max_a\Big(\sum_r p\,r+\gamma\sum_{s'}p\,v_k(s')\Big)$$</div>
+    </div>
+    <div class="form">
+      <div class="fh"><span class="chip">截断策略迭代</span><span class="use">评估走 $j$ 步 · 最实用 · 中间地带（Prop 4.1 仍改进）</span></div>
+      <div class="fb">$$\underbrace{v\leftarrow r_{\pi_k}+\gamma P_{\pi_k}v}_{\text{重复 }j\text{ 次}}\;\Rightarrow\;\pi_{k+1}=\text{greedy}(v)$$</div>
+    </div>
+    <div class="form">
+      <div class="fh"><span class="chip">策略迭代 PI</span><span class="use">评估走到收敛（∞ 步）· 每轮最贵 · 另一个端点</span></div>
+      <div class="fb">$$v_{\pi_k}=(I-\gamma P_{\pi_k})^{-1}r_{\pi_k}\;\Rightarrow\;\pi_{k+1}(s)=\arg\max_a q_{\pi_k}(s,a)$$</div>
+    </div>
+  </div>
+
+  <h2>动手算一遍（同一个 2 状态例子：VI 慢慢逼近 vs PI 一步到位）</h2>
+
+  <div class="setup">
+    <strong>例子设定</strong>（$\gamma=0.5$）：两个状态 $s_1,s_2$。
+    <ul style="margin:6px 0">
+      <li>$s_1$ 有两个动作：$a_\text{留}$（留在 $s_1$，奖励 $0$）、$a_\text{走}$（去 $s_2$，奖励 $1$）。</li>
+      <li>$s_2$ 只有 $a_\text{留}$（留在 $s_2$，奖励 $1$）。</li>
+    </ul>
+    用一步展开 $q(s,a)=r+\gamma\,v(s')$。真解：$v^*(s_2)=1+0.5v^*(s_2)\Rightarrow v^*(s_2)=2$，$v^*(s_1)=1+0.5\cdot2=2$，最优策略 $s_1\!\to\!a_\text{走}$。
+  </div>
+
+  <div class="formgrp">
+    <div class="gt">值迭代：从 $v_0=[0,0]$ 开始，每轮「算 $q$ → 取 max」</div>
+    <p style="margin:4px 0">第 1 轮以 $v_0=[0,0]$ 为例：<br>
+      $s_1$：$q(a_\text{留})=0+0.5\cdot0=0$，$q(a_\text{走})=1+0.5\cdot0=1\Rightarrow v_1(s_1)=\max(0,1)=1$<br>
+      $s_2$：$q(a_\text{留})=1+0.5\cdot0=1\Rightarrow v_1(s_2)=1$
+    </p>
+    <table class="ex">
+      <tr><th>轮 $k$</th><th>$v_k(s_1)$</th><th>$v_k(s_2)$</th><th>$s_1$ 当前最优动作</th></tr>
+      <tr><td>0</td><td>0</td><td>0</td><td>—</td></tr>
+      <tr><td>1</td><td>1</td><td>1</td><td>$a_\text{走}$</td></tr>
+      <tr><td>2</td><td>1.5</td><td>1.5</td><td>$a_\text{走}$</td></tr>
+      <tr><td>3</td><td>1.75</td><td>1.75</td><td>$a_\text{走}$</td></tr>
+      <tr><td>4</td><td>1.875</td><td>1.875</td><td>$a_\text{走}$</td></tr>
+      <tr><td>$\infty$</td><td class="hl">2</td><td class="hl">2</td><td class="hl">$a_\text{走}$</td></tr>
+    </table>
+    <p style="margin:4px 0;color:var(--muted)">每轮只「套一下 $f$」，值<strong>逐步逼近</strong> $[2,2]$，永远差一点（几何级数 $2\cdot(1-0.5^{k})$）。</p>
+  </div>
+
+  <div class="formgrp">
+    <div class="gt">策略迭代：评估「一评到底」，2 次评估就到位</div>
+    <table class="ex">
+      <tr><th>轮</th><th>当前策略 $\pi(s_1)$</th><th>评估结果 $v_\pi=[s_1,s_2]$</th><th>改进后 $\pi(s_1)$</th></tr>
+      <tr><td>0</td><td>$a_\text{留}$（故意选差的）</td><td>$[0,\;2]$</td><td>$q(a_\text{留})=0,\;q(a_\text{走})=1+0.5\cdot2=2\Rightarrow a_\text{走}$</td></tr>
+      <tr><td>1</td><td>$a_\text{走}$</td><td class="hl">$[2,\;2]$</td><td>不变 → 已最优 ✅</td></tr>
+    </table>
+    <p style="margin:6px 0 2px">两轮的<strong>策略评估</strong>各自解一个小贝尔曼方程组：</p>
+    <div class="fb">$$\text{评估 }\pi_0\,(s_1\!\to\!a_\text{留}):\;\begin{cases}v(s_1)=0+0.5\,v(s_1)\;\Rightarrow\;v(s_1)=0\\[1mm] v(s_2)=1+0.5\,v(s_2)\;\Rightarrow\;v(s_2)=2\end{cases}\;\Rightarrow\;[0,\,2]$$</div>
+    <div class="fb">$$\text{评估 }\pi_1\,(s_1\!\to\!a_\text{走}):\;\begin{cases}v(s_2)=1+0.5\,v(s_2)\;\Rightarrow\;v(s_2)=2\\[1mm] v(s_1)=1+0.5\,v(s_2)=1+0.5\cdot2\;\Rightarrow\;v(s_1)=2\end{cases}\;\Rightarrow\;[2,\,2]$$</div>
+    <p style="margin:6px 0 2px">改进步用动作值 $q_\pi(s,a)=r+\gamma\,v_\pi(s')$ 比较动作（以 $\pi_0$ 的评估值 $[0,2]$ 为例）：</p>
+    <div class="fb">$$\begin{aligned}q_{\pi_0}(s_1,a_\text{留})&=0+0.5\,v(s_1)=0+0.5\cdot0=0\\[1mm] q_{\pi_0}(s_1,a_\text{走})&=1+0.5\,v(s_2)=1+0.5\cdot2=2\end{aligned}\;\;\Rightarrow\;\arg\max_a\Rightarrow a_\text{走}$$</div>
+    <p style="margin:4px 0;color:var(--muted)">评估走到底（解贝尔曼方程），策略一次改进就跳到最优 $[2,2]$，不像值迭代那样无限逼近。</p>
+  </div>
+
+  <div class="insight">
+    <span class="lab">核心洞见</span><br>别把 VI / PI / 截断 当三个算法背——它们是 <strong>GPI 一条轴上的三个点</strong>，唯一变量是「策略评估做多透」。这一章真正的产出是 <strong>GPI 框架</strong>：评估 + 改进交替必收敛。后面 MC / TD / actor-critic 都是 GPI，只是把「精确评估」换成「采样评估」。本章硬约束：<strong>model-based</strong>，需要已知 $p,r$。
+  </div>
+
+  <h2>核心概念（结论速记）</h2>
+  <div class="tags">
+    <span class="tag">值迭代 VI</span><span class="tag">策略迭代 PI</span><span class="tag">截断 PI</span>
+    <span class="tag">GPI</span><span class="tag">Lemma 4.1 改进不变差</span><span class="tag">Prop 4.1</span>
+    <span class="tag">$v_k\ne v_\pi$（易错）</span><span class="tag">model-based</span>
+  </div>
+
+  <h2>上接 / 下启</h2>
+  <p><strong>上接 Ch3：</strong>压缩映射保证「反复套 $f$ 必收敛」——值迭代就是把它落地。</p>
+  <div class="next"><strong>下启 → <a href="./ch05.html">Ch5 蒙特卡洛</a>：</strong>
+    本章一切都假设<strong>模型已知</strong>。现实里 $p,r$ 未知，那个「需要模型才能算的期望」怎么办？
+    答案是把它换成<strong>大量 episode 回报的平均</strong>——进入免模型（model-free）的世界。</div>
+
+</div>
+</body>
+</html>

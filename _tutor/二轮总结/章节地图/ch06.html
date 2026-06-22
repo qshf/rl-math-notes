@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ch6 地图 · 随机近似（问题驱动）</title>
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+<style>
+  :root{
+    --bg:#f6f8fa; --card:#fff; --ink:#1f2328; --muted:#59636e;
+    --accent:#0969da; --green:#1a7f37; --amber:#9a6700; --line:#d1d9e0;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+    line-height:1.75;}
+  .wrap{max-width:860px;margin:0 auto;padding:30px 20px 90px;}
+  h1{font-size:1.55rem;margin:0 0 2px;}
+  .sub{color:var(--muted);font-size:.9rem;margin:0 0 14px;}
+  .nav{display:flex;justify-content:space-between;font-size:.88rem;margin:0 0 18px;}
+  .nav a{color:var(--accent);text-decoration:none;}
+  .mainq{background:linear-gradient(0deg,#fff8c5,#fffdf0);border:1px solid #eac54f;
+    border-left:5px solid var(--amber);border-radius:8px;padding:14px 16px;margin:0 0 8px;}
+  .mainq b{color:#7a5200;}
+  .chain{margin:14px 0;}
+  .qcard{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:0 0 14px;margin:0;box-shadow:0 1px 3px rgba(31,35,40,.07);overflow:hidden;}
+  .qhead{display:flex;align-items:flex-start;gap:10px;padding:13px 16px 6px;}
+  .qnum{flex:none;background:var(--accent);color:#fff;font-size:.78rem;font-weight:700;
+    border-radius:20px;padding:3px 11px;margin-top:2px;white-space:nowrap;}
+  .qtext{font-weight:650;font-size:1.06rem;}
+  .why{padding:2px 16px 0;color:#374151;}
+  .why .lab{color:var(--muted);font-size:.8rem;font-weight:700;letter-spacing:.04em;}
+  .concl{margin:12px 16px 0;background:#eef6ff;border:1px solid #cfe4ff;border-radius:8px;
+    padding:9px 13px;}
+  .concl .lab{color:var(--accent);font-size:.78rem;font-weight:700;margin-right:6px;}
+  .bridge{display:flex;flex-direction:column;align-items:center;color:var(--muted);
+    font-size:.9rem;margin:7px 0;}
+  .bridge .ar{color:var(--accent);font-size:1.25rem;line-height:1;}
+  .bridge .nq{background:#f0f3f6;border:1px dashed #aeb6bf;border-radius:18px;
+    padding:3px 12px;margin-top:3px;}
+  .bridge .nq b{color:var(--ink);}
+  .insight{background:#dafbe1;border:1px solid #aceebb;border-left:5px solid var(--green);
+    border-radius:8px;padding:12px 15px;margin:18px 0;}
+  .insight .lab{color:var(--green);font-weight:700;}
+  h2{font-size:1.12rem;margin:30px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px;}
+  .tags .tag{display:inline-block;background:#ddf4ff;color:#0a4c8b;border-radius:18px;
+    padding:3px 11px;font-size:.84rem;margin:3px 5px 3px 0;}
+  .next{background:#fff;border:1px solid var(--line);border-left:5px solid var(--green);
+    border-radius:8px;padding:12px 15px;}
+  .next a{color:var(--accent);text-decoration:none;font-weight:600;}
+  .reflink{color:var(--accent);text-decoration:none;}
+  code{background:#eaeef2;padding:1px 5px;border-radius:4px;font-size:.9em;}
+  .formgrp{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:4px 18px 12px;margin-bottom:14px;box-shadow:0 1px 3px rgba(31,35,40,.07);}
+  .formgrp .gt{font-weight:650;font-size:1.04rem;margin:12px 0 2px;}
+  .form{padding:11px 0;border-top:1px solid #eef1f4;}
+  .form:first-of-type{border-top:none;}
+  .form .fh{display:flex;flex-wrap:wrap;align-items:baseline;gap:9px;margin-bottom:1px;}
+  .form .chip{flex:none;background:#eef6ff;color:#0a4c8b;border:1px solid #cfe4ff;
+    border-radius:16px;padding:2px 11px;font-size:.83rem;font-weight:600;white-space:nowrap;}
+  .form .use{color:var(--muted);font-size:.88rem;}
+  .form .fb,.fb{overflow-x:auto;overflow-y:hidden;padding:3px 2px;}
+  table.ex{border-collapse:collapse;margin:8px 0;font-size:.9rem;width:100%;}
+  table.ex th,table.ex td{border:1px solid var(--line);padding:7px 11px;text-align:left;vertical-align:top;}
+  table.ex th{background:#f0f3f6;}
+  table.ex td.hl{background:#fff8c5;}
+  .cmpwrap{overflow-x:auto;}
+  .epilist{background:#f6f8fa;border:1px solid var(--line);border-radius:8px;padding:4px 14px;margin:6px 0;}
+  .epilist .er{display:flex;flex-wrap:nowrap;align-items:baseline;gap:10px;padding:7px 0;overflow-x:auto;}
+  .epilist .er + .er{border-top:1px solid #eef1f4;}
+  .epilist .lb{color:var(--accent);font-weight:600;white-space:nowrap;flex:none;}
+  .epilist .ch{white-space:nowrap;}
+  .steps{margin:6px 0 0;}
+  .steps .it{display:flex;gap:10px;padding:7px 0;align-items:baseline;}
+  .steps .it + .it{border-top:1px dashed #eef1f4;}
+  .steps .k{flex:none;min-width:64px;font-weight:700;font-size:.8rem;color:#fff;
+    border-radius:6px;padding:3px 9px;text-align:center;line-height:1.3;}
+  .steps .tx{flex:1;min-width:0;}
+  .steps .ref{color:var(--muted);font-size:.84rem;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Ch6 · 随机近似（Stochastic Approximation）</h1>
+  <div class="sub">问题驱动地图 · <a class="reflink" href="../../notes/06_chapter6-stochastic-approximation.md">章笔记</a> · <a class="reflink" href="../../notes/06_supplement-6.1-6.3-structure.md">6.1-6.3 结构补充</a> · <a class="reflink" href="../00_%E5%85%A8%E4%B9%A6%E5%9C%B0%E5%9B%BE%E4%B8%8E%E9%97%AE%E9%A2%98%E9%93%BE.md">全局地图</a></div>
+  <div class="nav">
+    <a href="./ch05.html">← 上一章：蒙特卡洛</a>
+    <a href="./ch07.html">下一章：时序差分 TD →</a>
+  </div>
+
+  <div class="mainq">
+    <b>本章主问题：</b>第 5 章会用样本平均估期望，但如果样本是边交互边来的，能不能<strong>每来一个样本就更新一点</strong>，而且还能保证收敛？<br>
+    <span style="color:#7a5200">一句话答案：把估计写成「旧值 + 步长 × 带噪误差」的随机迭代；Robbins-Monro 给算法框架，Dvoretzky 给收敛证明模板，SGD 是这个框架的优化版特例。</span>
+  </div>
+
+  <div class="chain">
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 1 · 6.1</span>
+        <span class="qtext">样本平均能不能改成“来一个样本，更新一次”？</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        普通平均 $\bar x=\frac1n\sum_{i=1}^n x_i$ 要看一批样本。把前 $k-1$ 个样本的平均记作 $w_k$，第 $k$ 个样本来时，可代数变形成增量更新：新估计朝新样本 $x_k$ 移动一点。若步长是 $1/k$，它和精确样本平均完全等价。</div>
+      <div class="concl"><span class="lab">结论</span> $w_{k+1}=w_k+\frac1k(x_k-w_k)$；推广为 $w_{k+1}=w_k+\alpha_k(x_k-w_k)$</div>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">手算一遍：增量平均不需要保存所有历史样本</div>
+      <p style="margin:4px 0">样本依次为 $x_1=4,\;x_2=8,\;x_3=2,\;x_4=6$，取 $w_1=4$，用 $w_{k+1}=w_k+\frac1k(x_k-w_k)$：</p>
+      <table class="ex">
+        <tr><th>$k$</th><th>新样本</th><th>更新</th><th>结果</th><th>等价平均</th></tr>
+        <tr><td>1</td><td>$4$</td><td>$w_2=4+\frac11(4-4)$</td><td>$4$</td><td>$4$</td></tr>
+        <tr><td>2</td><td>$8$</td><td>$w_3=4+\frac12(8-4)$</td><td>$6$</td><td>$(4+8)/2=6$</td></tr>
+        <tr><td>3</td><td>$2$</td><td>$w_4=6+\frac13(2-6)$</td><td>$4.667$</td><td>$(4+8+2)/3$</td></tr>
+        <tr><td>4</td><td>$6$</td><td>$w_5=4.667+\frac14(6-4.667)$</td><td>$5$</td><td>$(4+8+2+6)/4$</td></tr>
+      </table>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">关键：$\alpha_k=1/k$ 时是精确平均；换成一般 $\alpha_k$ 后就进入“随机近似是否收敛”的问题。</p>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>一般步长 $\alpha_k$ 下，带噪更新凭什么会收敛？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 2 · 6.2</span>
+        <span class="qtext">Robbins-Monro：只能看到带噪函数值，怎么求根？</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        把目标统一写成求根 $g(w)=0$。真实 $g(w)$ 看不到，只能观察到 $\tilde g(w,\eta)=g(w)+\eta$。如果 $g$ 单调递增，那么观测值为正通常说明 $w$ 偏大，往下调；观测值为负通常说明 $w$ 偏小，往上调。</div>
+      <div class="concl"><span class="lab">结论</span> RM 更新：$w_{k+1}=w_k-a_k\tilde g(w_k,\eta_k)$；步长要满足 $\sum a_k=\infty,\;\sum a_k^2<\infty$</div>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>RM 的收敛证明长什么样？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 3 · 6.3</span>
+        <span class="qtext">Dvoretzky：把算法改写成误差递推</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        不直接盯 $w_k$，而是盯误差 $\Delta_k=\text{当前估计}-\text{真实目标}$。如果误差能写成“旧误差被压缩 + 新噪声”的模板，就可以证明误差趋于 0。它不是新算法，而是证明工具。</div>
+      <div class="concl"><span class="lab">结论</span> 误差模板：$\Delta_{k+1}=(1-\alpha_k)\Delta_k+\beta_k\eta_k$；旧误差持续压缩，噪声平方和有限，$\Delta_k\to0$</div>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">Dvoretzky 模板的读法：两个力在拔河</div>
+      <div class="steps">
+        <div class="it"><span class="k" style="background:#1a7f37">压缩</span><span class="tx">$(1-\alpha_k)\Delta_k$：每一步把旧误差乘上小于 1 的系数。$\sum\alpha_k=\infty$ 表示“纠偏动作持续足够久”。</span></div>
+        <div class="it"><span class="k" style="background:#cf222e">噪声</span><span class="tx">$\beta_k\eta_k$：新样本会把估计随机推来推去。要求 $\mathbb E[\eta_k|\mathcal H_k]=0$ 且 $\sum\beta_k^2<\infty$，表示噪声不偏、总影响可控。</span></div>
+        <div class="it"><span class="k" style="background:#0969da">结论</span><span class="tx">平方误差先被证明有极限，再用 $\sum\alpha_k=\infty$ 排除“极限是正数”的可能，最终只能 $\Delta_k\to0$。</span></div>
+      </div>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>均值估计、RM、Dvoretzky 到底怎么套在一起？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 4</span>
+        <span class="qtext">均值估计是 RM 的特例，也是 Dvoretzky 模板的例子</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        要估 $\mathbb E[X]$，等价于求 $g(w)=w-\mathbb E[X]=0$。真实 $\mathbb E[X]$ 不知道，但样本 $x_k$ 给了一个带噪观测：$\tilde g(w_k)=w_k-x_k$。代进 RM，就得到增量均值更新。再令 $\Delta_k=w_k-\mathbb E[X]$，又正好落进 Dvoretzky 模板。</div>
+      <div class="concl"><span class="lab">结论</span> $w_{k+1}=w_k-a_k(w_k-x_k)=w_k+a_k(x_k-w_k)$；均值估计 $\subset$ RM</div>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>优化里的 SGD 和这套随机近似有什么关系？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 5 · 6.4</span>
+        <span class="qtext">SGD：把优化问题转成带噪求根</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        优化 $\min_w J(w)=\mathbb E[f(w,X)]$ 可转成求根 $\nabla_wJ(w)=0$。真实梯度是期望 $\mathbb E[\nabla_w f(w,X)]$，通常算不出；单样本梯度 $\nabla_wf(w_k,x_k)$ 是它的无偏带噪观测。因此 SGD 就是 RM 用在梯度方程上。</div>
+      <div class="concl"><span class="lab">结论</span> SGD：$w_{k+1}=w_k-\alpha_k\nabla_wf(w_k,x_k)$；本质是 RM applied to $\nabla_wJ(w)=0$</div>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>为什么又说均值估计也是 SGD 的特例？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 6</span>
+        <span class="qtext">平均数也能看成最小化平方误差</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        均值 $\mathbb E[X]$ 是让平均平方距离 $\mathbb E[\frac12\|w-X\|^2]$ 最小的 $w$。单样本损失梯度是 $w_k-x_k$，所以对这个损失做 SGD，更新正好变成 $w_{k+1}=w_k+\alpha_k(x_k-w_k)$。</div>
+      <div class="concl"><span class="lab">结论</span> mean estimation $\subset$ SGD $\subset$ Robbins-Monro；Dvoretzky 是证明这些随机迭代收敛的模板</div>
+    </div>
+
+  </div>
+
+  <h2>核心关系图（章节地图的重点）</h2>
+
+  <div class="formgrp">
+    <div class="gt">一个套一个：最外层是 Robbins-Monro</div>
+    <div class="fb">$$
+\underbrace{\text{mean estimation}}_{\text{均值估计}}
+\subset
+\underbrace{\text{SGD}}_{\text{随机梯度下降}}
+\subset
+\underbrace{\text{Robbins-Monro}}_{\text{带噪求根框架}}
+$$</div>
+    <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">Dvoretzky 不在这条“算法包含链”里；它是证明工具：把算法的误差改写成模板，再证明误差归零。</p>
+  </div>
+
+  <h2>易混点对比表（概念角色不要混）</h2>
+
+  <div class="cmpwrap">
+  <table class="ex">
+    <tr><th>对象</th><th>它解决什么</th><th>看得见什么</th><th>更新/模板</th><th>本章角色</th></tr>
+    <tr><td><b>增量均值估计</b></td><td>估 $\mathbb E[X]$</td><td>样本 $x_k$</td><td>$w_{k+1}=w_k+\alpha_k(x_k-w_k)$</td><td>最小入口例子</td></tr>
+    <tr><td><b>Robbins-Monro</b></td><td>求 $g(w)=0$</td><td>$\tilde g(w,\eta)=g(w)+\eta$</td><td>$w_{k+1}=w_k-a_k\tilde g(w_k,\eta_k)$</td><td class="hl">通用随机近似算法</td></tr>
+    <tr><td><b>Dvoretzky</b></td><td>证明误差会归零</td><td>误差递推里的噪声</td><td>$\Delta_{k+1}=(1-\alpha_k)\Delta_k+\beta_k\eta_k$</td><td class="hl">证明模板，不是算法</td></tr>
+    <tr><td><b>SGD</b></td><td>优化 $\min J(w)$</td><td>单样本梯度 $\nabla f(w_k,x_k)$</td><td>$w_{k+1}=w_k-\alpha_k\nabla f(w_k,x_k)$</td><td>RM 在优化里的特例</td></tr>
+  </table>
+  </div>
+
+  <p style="margin:14px 0 2px">② <strong>步长条件</strong>——最常见的直觉坑：</p>
+  <div class="cmpwrap">
+  <table class="ex">
+    <tr><th>条件</th><th>意思</th><th>为什么需要</th><th>例子</th></tr>
+    <tr><td>$a_k\to0$ / $\sum a_k^2<\infty$</td><td>后期步子要小</td><td>避免噪声长期把估计震来震去</td><td>$a_k=1/k$ 满足</td></tr>
+    <tr><td>$\sum a_k=\infty$</td><td>总路程不能太短</td><td>否则还没走到根，更新力度就耗尽了</td><td>$1/k$ 虽变小但总和发散</td></tr>
+    <tr><td>常数步长 $a_k=a$</td><td>一直保持同样步子</td><td>可持续追踪变化目标，但一般只会在真值附近抖</td><td>不满足 $\sum a_k^2<\infty$</td></tr>
+    <tr><td>太快变小 $a_k=1/k^2$</td><td>步子很快耗尽</td><td>可能早早停在错误位置</td><td>不满足 $\sum a_k=\infty$</td></tr>
+  </table>
+  </div>
+
+  <p style="margin:14px 0 2px">③ <strong>BGD / SGD / mini-batch GD</strong>——每步用多少样本估梯度：</p>
+  <div class="cmpwrap">
+  <table class="ex">
+    <tr><th>方法</th><th>每步样本数</th><th>梯度噪声</th><th>每步代价</th><th>一句话</th></tr>
+    <tr><td>BGD</td><td>全部 $n$ 个</td><td>最低</td><td>最高</td><td>稳但贵</td></tr>
+    <tr><td>SGD</td><td>1 个</td><td>最高</td><td>最低</td><td>便宜但抖</td></tr>
+    <tr><td>Mini-batch GD</td><td>$m$ 个</td><td>中</td><td>中</td><td class="hl">实践折中</td></tr>
+  </table>
+  </div>
+
+  <h2>关键公式（结论附带）</h2>
+
+  <div class="formgrp">
+    <div class="gt">三种同构更新：都长成“旧值 + 步长 × 修正量”</div>
+    <div class="form">
+      <div class="fh"><span class="chip">增量均值</span><span class="use">样本把估计往自己方向拉</span></div>
+      <div class="fb">$$w_{k+1}=w_k+\alpha_k(x_k-w_k)$$</div>
+    </div>
+    <div class="form">
+      <div class="fh"><span class="chip">Robbins-Monro</span><span class="use">带噪函数值判断根在哪边</span></div>
+      <div class="fb">$$w_{k+1}=w_k-a_k\tilde g(w_k,\eta_k)$$</div>
+    </div>
+    <div class="form">
+      <div class="fh"><span class="chip">SGD</span><span class="use">单样本梯度代替真实期望梯度</span></div>
+      <div class="fb">$$w_{k+1}=w_k-\alpha_k\nabla_w f(w_k,x_k)$$</div>
+    </div>
+    <div class="form">
+      <div class="fh"><span class="chip">Dvoretzky 误差模板</span><span class="use">证明工具：看误差怎么变</span></div>
+      <div class="fb">$$\Delta_{k+1}=(1-\alpha_k)\Delta_k+\beta_k\eta_k$$</div>
+    </div>
+  </div>
+
+  <div class="insight">
+    <span class="lab">核心洞见</span><br>
+    第 6 章不是“又学一个 RL 算法”，而是把第 5 章的样本平均升级成<strong>在线、带噪、可证明收敛</strong>的迭代语言。之后看到 TD、Q-learning、函数近似、策略梯度里的更新式，都可以先问三件事：目标是什么？样本给了哪个带噪观测？步长是否让噪声逐渐被平均掉？
+  </div>
+
+  <h2>核心概念（结论速记）</h2>
+  <div class="tags">
+    <span class="tag">stochastic approximation</span><span class="tag">incremental update</span>
+    <span class="tag">Robbins-Monro</span><span class="tag">noisy root finding</span>
+    <span class="tag">Dvoretzky theorem</span><span class="tag">error recursion</span>
+    <span class="tag">zero-mean noise</span><span class="tag">stepsize conditions</span>
+    <span class="tag">SGD / BGD / mini-batch</span><span class="tag">mean estimation $\subset$ SGD $\subset$ RM</span>
+  </div>
+
+  <h2>上接 / 下启</h2>
+  <p><strong>上接 Ch5：</strong>MC 用 return 平均估期望，但往往要等 episode 或样本批次；Ch6 把“平均”改写成每来一个样本就更新一点的随机迭代。</p>
+  <div class="next"><strong>下启 → <a href="./ch07.html">Ch7 Temporal-Difference Learning</a>：</strong>
+    TD 的核心形状就是 $V\leftarrow V+\alpha(\text{target}-V)$。第 6 章告诉你：这种带噪、在线、增量的更新为什么有可能收敛，以及步长和噪声条件为什么重要。</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ch9 地图 · 策略梯度方法（问题驱动）</title>
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+<style>
+  :root{
+    --bg:#f6f8fa; --card:#fff; --ink:#1f2328; --muted:#59636e;
+    --accent:#0969da; --green:#1a7f37; --amber:#9a6700; --line:#d1d9e0;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+    line-height:1.75;}
+  .wrap{max-width:860px;margin:0 auto;padding:30px 20px 90px;}
+  h1{font-size:1.55rem;margin:0 0 2px;}
+  .sub{color:var(--muted);font-size:.9rem;margin:0 0 14px;}
+  .nav{display:flex;justify-content:space-between;font-size:.88rem;margin:0 0 18px;}
+  .nav a{color:var(--accent);text-decoration:none;}
+  .mainq{background:linear-gradient(0deg,#fff8c5,#fffdf0);border:1px solid #eac54f;
+    border-left:5px solid var(--amber);border-radius:8px;padding:14px 16px;margin:0 0 8px;}
+  .mainq b{color:#7a5200;}
+  .chain{margin:14px 0;}
+  .qcard{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:0 0 14px;margin:0;box-shadow:0 1px 3px rgba(31,35,40,.07);overflow:hidden;}
+  .qhead{display:flex;align-items:flex-start;gap:10px;padding:13px 16px 6px;}
+  .qnum{flex:none;background:var(--accent);color:#fff;font-size:.78rem;font-weight:700;
+    border-radius:20px;padding:3px 11px;margin-top:2px;white-space:nowrap;}
+  .qtext{font-weight:650;font-size:1.06rem;}
+  .why{padding:2px 16px 0;color:#374151;}
+  .why .lab{color:var(--muted);font-size:.8rem;font-weight:700;letter-spacing:.04em;}
+  .concl{margin:12px 16px 0;background:#eef6ff;border:1px solid #cfe4ff;border-radius:8px;
+    padding:9px 13px;}
+  .concl .lab{color:var(--accent);font-size:.78rem;font-weight:700;margin-right:6px;}
+  .bridge{display:flex;flex-direction:column;align-items:center;color:var(--muted);
+    font-size:.9rem;margin:7px 0;}
+  .bridge .ar{color:var(--accent);font-size:1.25rem;line-height:1;}
+  .bridge .nq{background:#f0f3f6;border:1px dashed #aeb6bf;border-radius:18px;
+    padding:3px 12px;margin-top:3px;}
+  .bridge .nq b{color:var(--ink);}
+  .insight{background:#dafbe1;border:1px solid #aceebb;border-left:5px solid var(--green);
+    border-radius:8px;padding:12px 15px;margin:18px 0;}
+  .insight .lab{color:var(--green);font-weight:700;}
+  h2{font-size:1.12rem;margin:30px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px;}
+  .tags .tag{display:inline-block;background:#ddf4ff;color:#0a4c8b;border-radius:18px;
+    padding:3px 11px;font-size:.84rem;margin:3px 5px 3px 0;}
+  .next{background:#fff;border:1px solid var(--line);border-left:5px solid var(--green);
+    border-radius:8px;padding:12px 15px;}
+  .next a{color:var(--accent);text-decoration:none;font-weight:600;}
+  .reflink{color:var(--accent);text-decoration:none;}
+  code{background:#eaeef2;padding:1px 5px;border-radius:4px;font-size:.9em;}
+  .formgrp{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:4px 18px 12px;margin-bottom:14px;box-shadow:0 1px 3px rgba(31,35,40,.07);}
+  .formgrp .gt{font-weight:650;font-size:1.04rem;margin:12px 0 2px;}
+  .form{padding:11px 0;border-top:1px solid #eef1f4;}
+  .form:first-of-type{border-top:none;}
+  .form .fh{display:flex;flex-wrap:wrap;align-items:baseline;gap:9px;margin-bottom:1px;}
+  .form .chip{flex:none;background:#eef6ff;color:#0a4c8b;border:1px solid #cfe4ff;
+    border-radius:16px;padding:2px 11px;font-size:.83rem;font-weight:600;white-space:nowrap;}
+  .form .use{color:var(--muted);font-size:.88rem;}
+  .form .fb,.fb{overflow-x:auto;overflow-y:hidden;padding:3px 2px;}
+  table.ex{border-collapse:collapse;margin:8px 0;font-size:.9rem;width:100%;}
+  table.ex th,table.ex td{border:1px solid var(--line);padding:7px 11px;text-align:left;vertical-align:top;}
+  table.ex th{background:#f0f3f6;}
+  table.ex td.hl{background:#fff8c5;}
+  .cmpwrap{overflow-x:auto;}
+  .steps{margin:6px 0 0;}
+  .steps .it{display:flex;gap:10px;padding:7px 0;align-items:baseline;}
+  .steps .it + .it{border-top:1px dashed #eef1f4;}
+  .steps .k{flex:none;min-width:64px;font-weight:700;font-size:.8rem;color:#fff;
+    border-radius:6px;padding:3px 9px;text-align:center;line-height:1.3;}
+  .steps .tx{flex:1;min-width:0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Ch9 · 策略梯度方法（Policy Gradient Methods）</h1>
+  <div class="sub">问题驱动地图 · <a class="reflink" href="../../notes/09_chapter9-policy-gradient-methods.md">章笔记</a> · <a class="reflink" href="../../notes/09_supplement-theorem-9.2-9.3-gradient-derivations.md">梯度推导补充</a> · <a class="reflink" href="../../notes/09_supplement-lemma-9.2-discounted-total-probability.md">折扣访问权重补充</a> · <a class="reflink" href="../00_%E5%85%A8%E4%B9%A6%E5%9C%B0%E5%9B%BE%E4%B8%8E%E9%97%AE%E9%A2%98%E9%93%BE.md">全局地图</a></div>
+  <div class="nav">
+    <a href="./ch08.html">← 上一章：值函数近似</a>
+    <a href="./ch10.html">下一章：Actor-Critic →</a>
+  </div>
+
+  <div class="mainq">
+    <b>本章主问题：</b>第 8 章已经能用函数近似价值 $\hat v,\hat q$；能不能不先学价值再贪心，而是<strong>直接把策略写成函数 $\pi(a|s,\theta)$，沿着回报指标的梯度改策略参数</strong>？<br>
+    <span style="color:#7a5200">一句话答案：先选一个标量指标 $J(\theta)$ 衡量策略好坏，再用 policy gradient theorem 把 $\nabla_\theta J$ 写成 $\mathbb E[\nabla_\theta\ln\pi(A|S,\theta)q_\pi(S,A)]$，最后用采样回报估计 $q_\pi$，得到 REINFORCE。</span>
+  </div>
+
+  <div class="chain">
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 1 · 9.1</span>
+        <span class="qtext">策略从表格变成函数后，学习对象变了什么？</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        表格策略直接存 $\pi(a|s)$，每个状态一行概率；函数策略用 $\pi(a|s,\theta)$ 由参数 $\theta$ 生成动作概率。此时不能只改某个状态-动作格子，而要改共享参数 $\theta$，一个参数更新会同时影响很多状态下的动作分布。</div>
+      <div class="concl"><span class="lab">结论</span> 策略学习变成优化问题：定义标量指标 $J(\theta)$，再用梯度上升 $\theta_{t+1}=\theta_t+\alpha\nabla_\theta J(\theta_t)$ 直接改策略。</div>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">Ch8 和 Ch9 的对照：都是函数化，但对象不同</div>
+      <table class="ex">
+        <tr><th>章节</th><th>函数化对象</th><th>参数</th><th>训练目标</th><th>一句话</th></tr>
+        <tr><td><b>Ch8</b></td><td>价值函数 $\hat v(s,w),\hat q(s,a,w)$</td><td>$w$</td><td>贴近真实价值 / TD target</td><td>学会评价</td></tr>
+        <tr><td><b>Ch9</b></td><td class="hl">策略函数 $\pi(a|s,\theta)$</td><td class="hl">$\theta$</td><td class="hl">最大化策略表现 $J(\theta)$</td><td class="hl">直接学会行动</td></tr>
+      </table>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">策略函数常用 softmax 输出动作概率，保证每个概率为正且同一状态下概率和为 1。</p>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>既然要最大化 $J(\theta)$，这个指标到底是什么？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 2 · 9.2</span>
+        <span class="qtext">用一个标量 metric 定义“策略好不好”</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        函数策略不能再用“每个状态都最优”直接作为优化目标，需要把整体表现压成一个标量。原书给出两类指标：平均状态价值 $\bar v_\pi=\sum_s d(s)v_\pi(s)$，以及平均一步奖励 $\bar r_\pi=\sum_s d_\pi(s)r_\pi(s)$。</div>
+      <div class="concl"><span class="lab">结论</span> $J(\theta)$ 可以取 $\bar v_\pi^0,\bar v_\pi,\bar r_\pi$ 等；它们都是 $\theta$ 的函数，策略梯度就是沿着让这些指标变大的方向更新 $\theta$。</div>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">两个 metric：一个看折扣长期回报，一个看长期平均一步奖励</div>
+      <table class="ex">
+        <tr><th>指标</th><th>定义</th><th>状态权重</th><th>时间视角</th><th>常见写法</th></tr>
+        <tr><td><b>平均状态价值</b></td><td>$\bar v_\pi=\sum_s d(s)v_\pi(s)$</td><td>$d_0$ 或 $d_\pi$</td><td>从状态出发的折扣累计回报</td><td>$\mathbb E[\sum_{t=0}^{\infty}\gamma^tR_{t+1}]$</td></tr>
+        <tr><td><b>平均奖励</b></td><td>$\bar r_\pi=\sum_s d_\pi(s)r_\pi(s)$</td><td class="hl">必须用长期访问分布 $d_\pi$</td><td>长期平均每一步奖励</td><td>$\lim_{n\to\infty}\frac1n\mathbb E[\sum_{t=0}^{n-1}R_{t+1}]$</td></tr>
+      </table>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">折扣情形且使用平稳分布时，$\bar r_\pi=(1-\gamma)\bar v_\pi$，所以最大化方向一致。</p>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">$\mathbb E[\sum_t\gamma^tR_{t+1}]$ 和 $v_\pi(s)$ 的关系</div>
+      <p style="margin:4px 0">这两个写法确实很像。差别只在于：$v_\pi(s)$ 固定了初始状态；不带条件的期望把初始状态也当随机变量一起平均。</p>
+      <table class="ex">
+        <tr><th>写法</th><th>含义</th><th>读法</th></tr>
+        <tr><td>$v_\pi(s)=\mathbb E_\pi[\sum_{t=0}^{\infty}\gamma^tR_{t+1}\mid S_0=s]$</td><td>给定从状态 $s$ 出发</td><td>指定起点的期望折扣回报</td></tr>
+        <tr><td>$\mathbb E[\sum_{t=0}^{\infty}\gamma^tR_{t+1}]$</td><td class="hl">初始状态也按分布 $d$ 抽样</td><td class="hl">对起点再平均一次的期望折扣回报</td></tr>
+      </table>
+      <div class="fb">$$
+\mathbb E\left[\sum_{t=0}^{\infty}\gamma^tR_{t+1}\right]
+=
+\sum_s d(s)\,
+\mathbb E\left[\sum_{t=0}^{\infty}\gamma^tR_{t+1}\mid S_0=s\right]
+=
+\sum_s d(s)v_\pi(s)
+=\bar v_\pi.
+$$</div>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">一句话：它就是“不指定 $s$ 的 $v_\pi(s)$”，也就是对初始状态分布 $d$ 加权后的平均状态价值。</p>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">两状态小算例：同一个 $v_\pi$，换权重就换评价</div>
+      <p style="margin:4px 0">设 $v_\pi(s_1)=10,\ v_\pi(s_2)=2$。</p>
+      <table class="ex">
+        <tr><th>权重分布</th><th>含义</th><th>$\bar v_\pi$</th></tr>
+        <tr><td>$d_0=[0.5,0.5]^T$</td><td>两个状态同等重要</td><td>$0.5\cdot10+0.5\cdot2=6$</td></tr>
+        <tr><td>$d_\pi=[0.8,0.2]^T$</td><td>策略长期 80% 时间在 $s_1$</td><td class="hl">$0.8\cdot10+0.2\cdot2=8.4$</td></tr>
+      </table>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">所以“策略好不好”不仅取决于每个状态的价值，也取决于你用哪个状态分布评价它。</p>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">固定初始分布 $d_0$ vs 平稳分布 $d_\pi$：起点和长期活动范围不是一回事</div>
+      <p style="margin:4px 0">固定策略 $\pi$ 后，假设状态转移矩阵为：</p>
+      <div class="fb">$$
+P_\pi=
+\begin{bmatrix}
+0.9 &amp; 0.1\\
+0.4 &amp; 0.6
+\end{bmatrix}.
+$$</div>
+      <table class="ex">
+        <tr><th>分布</th><th>回答的问题</th><th>例子</th><th>对应评价</th></tr>
+        <tr><td><b>$d_0$</b></td><td>第 0 步从哪里开始？</td><td>若每局都从 $s_2$ 开始，$d_0=[0,1]^T$</td><td>$\bar v_\pi^0=d_0^Tv_\pi=v_\pi(s_2)$</td></tr>
+        <tr><td><b>$d_\pi$</b></td><td class="hl">策略长期运行后，经常待在哪里？</td><td class="hl">解 $d_\pi^TP_\pi=d_\pi^T$ 得 $d_\pi=[0.8,0.2]^T$</td><td>$\bar v_\pi=d_\pi^Tv_\pi=0.8v_\pi(s_1)+0.2v_\pi(s_2)$</td></tr>
+      </table>
+      <p style="margin:4px 0">验证平稳分布：令 $d_\pi^T=[x,1-x]$，看第一维：</p>
+      <div class="fb">$$
+0.9x+0.4(1-x)=x
+\quad\Longrightarrow\quad
+x=0.8.
+$$</div>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">速记：$d_0$ 是起跑线；$d_\pi$ 是当前策略跑久以后形成的长期访问比例。前者通常不依赖策略，后者会随策略 $\pi$ 改变。</p>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">为什么 $d_\pi$ 会随策略改变？策略先改变 $P_\pi$，再改变平稳分布</div>
+      <p style="margin:4px 0">环境原始转移是 $p(s'|s,a)$，但一旦固定策略，状态之间的“平均转移矩阵”由策略加权得到：</p>
+      <div class="fb">$$
+P_\pi(s,s')=\sum_a \pi(a|s)\,p(s'|s,a),
+\qquad
+d_\pi^TP_\pi=d_\pi^T.
+$$</div>
+      <p style="margin:4px 0">所以策略变了，动作选择概率 $\pi(a|s)$ 变了，诱导出来的 $P_\pi$ 也会变；平稳分布要重新解。</p>
+      <table class="ex">
+        <tr><th>策略</th><th>诱导状态转移矩阵</th><th>平稳分布</th><th>读法</th></tr>
+        <tr>
+          <td>$\pi_A$</td>
+          <td>$P_{\pi_A}=\begin{bmatrix}0.9 &amp; 0.1\\0.4 &amp; 0.6\end{bmatrix}$</td>
+          <td>$d_{\pi_A}=[0.8,0.2]^T$</td>
+          <td>长期更多停在 $s_1$</td>
+        </tr>
+        <tr>
+          <td>$\pi_B$</td>
+          <td class="hl">$P_{\pi_B}=\begin{bmatrix}0.5 &amp; 0.5\\0.1 &amp; 0.9\end{bmatrix}$</td>
+          <td class="hl">$d_{\pi_B}=[\frac16,\frac56]^T$</td>
+          <td class="hl">长期更多停在 $s_2$</td>
+        </tr>
+      </table>
+      <p style="margin:4px 0">第二个平稳分布可这样验：令 $d_{\pi_B}^T=[x,1-x]$，看第一维：</p>
+      <div class="fb">$$
+0.5x+0.1(1-x)=x
+\quad\Longrightarrow\quad
+x=\frac16.
+$$</div>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">一句话：$d_0$ 可以一直固定为“每局从哪里开始”；$d_\pi$ 是当前策略实际会把智能体带到哪里，所以策略一换，长期访问比例也跟着换。</p>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>指标有了，梯度怎么写成可采样的形式？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 3 · 9.3</span>
+        <span class="qtext">Policy Gradient Theorem 把梯度化成“概率变化 × 动作价值”</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        策略参数改变会影响当前和未来的动作概率，完整推导较复杂。但核心结果很简洁：梯度可以写成所有重要状态、所有动作的加权和。动作价值 $q_\pi(s,a)$ 告诉我们这个动作是否值得增加概率；$\nabla_\theta\pi(a|s,\theta)$ 告诉我们参数怎么影响这个动作概率。</div>
+      <div class="concl"><span class="lab">结论</span> $\nabla_\theta J(\theta)=\sum_s\eta(s)\sum_a\nabla_\theta\pi(a|s,\theta)q_\pi(s,a)=\mathbb E[\nabla_\theta\ln\pi(A|S,\theta)q_\pi(S,A)]$。</div>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">Policy gradient theorem 的三个部件</div>
+      <table class="ex">
+        <tr><th>部件</th><th>含义</th><th>直觉</th></tr>
+        <tr><td>$\eta(s)$</td><td>状态权重，可能是 $\rho_\pi$ 或 $d_\pi$</td><td>哪些状态在这个目标里更重要</td></tr>
+        <tr><td>$\nabla_\theta\pi(a|s,\theta)$</td><td>参数变化对动作概率的影响</td><td>往哪个方向改参数能改变这个动作概率</td></tr>
+        <tr><td>$q_\pi(s,a)$</td><td>动作价值</td><td class="hl">动作越好，越应该把它的概率往上推</td></tr>
+      </table>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">策略梯度不是说“不需要价值”。它仍用 $q_\pi$ 判断动作好坏，只是价值服务于更新策略，而不是先学出 $q$ 后贪心。</p>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>为什么公式里突然出现 $\ln\pi$？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 4 · log-trick</span>
+        <span class="qtext">把求和梯度改写成可采样期望</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        关键恒等式是 $\nabla_\theta\pi(a|s,\theta)=\pi(a|s,\theta)\nabla_\theta\ln\pi(a|s,\theta)$。代回动作求和后，外面的 $\pi(a|s,\theta)$ 正好变成“按策略采样动作”的概率权重，于是可以写成期望。</div>
+      <div class="concl"><span class="lab">结论</span> $\ln\pi$ 不是换目标，而是为了把 $\nabla_\theta J$ 写成 $\mathbb E[\text{单样本可计算的量}]$，方便后面用轨迹样本估计梯度。</div>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">两动作例子：分母没有消失，是被采样概率抵消</div>
+      <p style="margin:4px 0">固定状态 $s$，设 $\pi(a_1|s)=0.8,\ \pi(a_2|s)=0.2$：</p>
+      <div class="fb">$$
+\begin{aligned}
+&amp;\mathbb E_{A\sim\pi}[\nabla_\theta\ln\pi(A|s)q_\pi(s,A)]\\
+&amp;=0.8\frac{\nabla_\theta\pi(a_1|s)}{0.8}q_\pi(s,a_1)
++0.2\frac{\nabla_\theta\pi(a_2|s)}{0.2}q_\pi(s,a_2)\\
+&amp;=\nabla_\theta\pi(a_1|s)q_\pi(s,a_1)+\nabla_\theta\pi(a_2|s)q_\pi(s,a_2).
+\end{aligned}
+$$</div>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">这就是从 (9.8) 到 (9.9) 的转换：把显式枚举动作，换成按当前策略采一个动作。</p>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>$q_\pi(s,a)$ 也不知道，样本里怎么估计梯度？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 5 · 9.4</span>
+        <span class="qtext">REINFORCE：用 MC return 估计动作价值</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        真实梯度是期望 $\mathbb E[\nabla_\theta\ln\pi(A|S,\theta)q_\pi(S,A)]$。采样时先按当前策略生成 episode，再用从时间 $t$ 开始的折扣回报 $G_t$ 近似 $q_\pi(s_t,a_t)$，形成一条样本梯度。</div>
+      <div class="concl"><span class="lab">结论</span> REINFORCE 更新：$\theta\leftarrow\theta+\alpha G_t\nabla_\theta\ln\pi(a_t|s_t,\theta)$；它是 on-policy 的 Monte Carlo policy gradient。</div>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">REINFORCE 算法形式</div>
+      <table class="ex">
+        <tr><th>阶段</th><th>操作</th><th>公式 / 说明</th></tr>
+        <tr><td>初始化</td><td>给定策略函数 $\pi(a|s,\theta)$</td><td>选初始参数 $\theta$，步长 $\alpha$，折扣 $\gamma$</td></tr>
+        <tr><td>采样</td><td>按当前策略生成一条 episode</td><td>$s_0,a_0,r_1,\dots,s_{T-1},a_{T-1},r_T$</td></tr>
+        <tr><td>算回报</td><td>对每个时间步计算 MC return</td><td>$G_t=\sum_{k=t+1}^{T}\gamma^{k-t-1}r_k$</td></tr>
+        <tr><td>更新策略</td><td>用每个 visit 做梯度上升</td><td class="hl">$\theta\leftarrow\theta+\alpha G_t\nabla_\theta\ln\pi(a_t|s_t,\theta)$</td></tr>
+      </table>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">它必须用当前策略自己的样本，所以是 on-policy；因为 $G_t$ 要等 episode 后续奖励，方差通常较高。</p>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">最小手算：一次 REINFORCE 更新在增强哪个动作？</div>
+      <p style="margin:4px 0">只有一个状态 $s$、两个动作 $a_1,a_2$。用一个参数控制动作概率：</p>
+      <div class="fb">$$
+\pi(a_1|s,\theta)=\sigma(\theta)=\frac{1}{1+e^{-\theta}},
+\qquad
+\pi(a_2|s,\theta)=1-\sigma(\theta).
+$$</div>
+      <p style="margin:4px 0">当前 $\theta=0$，所以两个动作概率都是 $0.5$。这次按当前策略采样，刚好选到了 $a_1$；后续回报 $G_t=4$，步长 $\alpha=0.1$。REINFORCE 更新用的是：</p>
+      <div class="fb">$$
+\theta_{new}
+=
+\theta+\alpha G_t\nabla_\theta\ln\pi(a_1|s,\theta).
+$$</div>
+      <table class="ex">
+        <tr><th>步骤</th><th>计算</th><th>结果 / 含义</th></tr>
+        <tr><td>旧概率</td><td>$\pi(a_1|s,0)=\sigma(0)$，$\pi(a_2|s,0)=1-\sigma(0)$</td><td>$0.5,\ 0.5$</td></tr>
+        <tr><td>log 概率梯度</td><td>$\nabla_\theta\ln\pi(a_1|s,\theta)=\nabla_\theta\ln\sigma(\theta)=1-\sigma(\theta)$</td><td>在 $\theta=0$ 时等于 $0.5$</td></tr>
+        <tr><td>参数更新</td><td>$\theta_{new}=0+0.1\cdot4\cdot0.5$</td><td>$\theta_{new}=0.2$</td></tr>
+        <tr><td>新概率</td><td>$\pi(a_1|s,0.2)=\sigma(0.2)$，$\pi(a_2|s,0.2)=1-\sigma(0.2)$</td><td class="hl">$a_1:0.5\to0.55$；$a_2:0.5\to0.45$</td></tr>
+      </table>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">读法：这次选到的动作 $a_1$ 后续回报为正，所以更新把 $\theta$ 往“提高 $\pi(a_1|s,\theta)$”的方向推。因为两个动作概率和必须为 1，$a_1$ 概率上升时，$a_2$ 概率会相应下降。</p>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>这个更新到底在“奖励好动作”还是“惩罚坏动作”？</b></span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">问题 6 · 更新解释</span>
+        <span class="qtext">动作价值 $q_t(s_t,a_t)$ 决定概率往上还是往下推</span></div>
+      <div class="why"><span class="lab">思路</span><br>
+        REINFORCE 原式是 $\theta_{t+1}=\theta_t+\alpha q_t(s_t,a_t)\nabla_\theta\ln\pi(a_t|s_t,\theta_t)$。把 log 梯度展开后才得到 $\theta_{t+1}=\theta_t+\alpha\beta_t\nabla_\theta\pi(a_t|s_t,\theta_t)$，其中 $\beta_t=q_t(s_t,a_t)/\pi(a_t|s_t,\theta_t)$。所以<strong>决定方向的是 $q_t(s_t,a_t)$ 的符号和大小</strong>；分母 $\pi(a_t|s_t,\theta_t)$ 只是在 $q_t>0$ 时让“低概率但高价值”的动作被放大得更明显。</div>
+      <div class="concl"><span class="lab">结论</span> policy gradient 是“哪个采样动作的 $q_t(s_t,a_t)$ 高，就把它的 log 概率往上推；$q_t$ 低或为负，就往下推”。探索效果来自 $q_t/\pi$ 这一重写形式，而不是忽略 $q_t$。</div>
+    </div>
+
+  </div>
+
+  <h2>核心机制总表</h2>
+
+  <div class="cmpwrap">
+  <table class="ex">
+    <tr><th>机制</th><th>解决什么问题</th><th>公式 / 操作</th><th>一句话记法</th></tr>
+    <tr><td><b>策略函数</b></td><td>用参数直接生成动作概率</td><td>$\pi(a|s,\theta)$</td><td>不查表，算概率</td></tr>
+    <tr><td><b>标量 metric</b></td><td>把策略好坏压成一个可优化目标</td><td>$J(\theta)=\bar v_\pi$ 或 $\bar r_\pi$</td><td>没有 $J$ 就没有梯度方向</td></tr>
+    <tr><td><b>log-trick</b></td><td>把梯度写成采样期望</td><td>$\nabla\pi=\pi\nabla\ln\pi$</td><td>让动作采样概率抵消分母</td></tr>
+    <tr><td><b>Policy gradient theorem</b></td><td>给出策略目标的统一梯度形状</td><td>$\mathbb E[\nabla\ln\pi\ q_\pi]$</td><td>改概率方向乘动作好坏</td></tr>
+    <tr><td><b>REINFORCE</b></td><td>用 episode 样本估计梯度</td><td>$G_t\nabla\ln\pi(a_t|s_t)$</td><td>MC 版策略梯度</td></tr>
+  </table>
+  </div>
+
+  <h2>易混点对比表</h2>
+
+  <p style="margin:2px 0">① <strong>value-based / policy-based</strong>：</p>
+  <div class="cmpwrap">
+  <table class="ex">
+    <tr><th>方法线</th><th>直接学习什么</th><th>策略怎么来</th><th>代表</th></tr>
+    <tr><td>Value-based</td><td>$v$ 或 $q$</td><td>从价值里 greedy / $\epsilon$-greedy 导出</td><td>Q-learning, DQN</td></tr>
+    <tr><td>Policy-based</td><td class="hl">$\pi(a|s,\theta)$</td><td class="hl">策略本身就是可学习对象</td><td>REINFORCE</td></tr>
+  </table>
+  </div>
+
+  <p style="margin:14px 0 2px">② <strong>$d_0,\rho_\pi,d_\pi,\eta$ 不要混</strong>：</p>
+  <div class="cmpwrap">
+  <table class="ex">
+    <tr><th>符号</th><th>含义</th><th>出现位置</th></tr>
+    <tr><td>$d_0$</td><td>固定初始状态分布，不依赖策略</td><td>$\bar v_\pi^0=d_0^Tv_\pi$</td></tr>
+    <tr><td>$\rho_\pi$</td><td>从 $d_0$ 出发后，未来折扣访问状态的总权重</td><td>Theorem 9.2</td></tr>
+    <tr><td>$d_\pi$</td><td>策略长期运行的平稳分布</td><td>$\bar v_\pi,\bar r_\pi$</td></tr>
+    <tr><td>$\eta$</td><td>Policy gradient theorem 里的统一占位符</td><td>不同 metric 下可取 $\rho_\pi$ 或 $d_\pi$ 等</td></tr>
+  </table>
+  </div>
+
+  <p style="margin:14px 0 2px">③ <strong>REINFORCE 和 TD/DQN 的 target 差别</strong>：</p>
+  <div class="cmpwrap">
+  <table class="ex">
+    <tr><th>算法</th><th>用什么估计“好坏”</th><th>何时可更新</th><th>偏差 / 方差</th></tr>
+    <tr><td>TD / DQN</td><td>$r+\gamma\hat v$ 或 $r+\gamma\max\hat q$</td><td>一步样本后</td><td>有自举偏差，方差较低</td></tr>
+    <tr><td>REINFORCE</td><td class="hl">完整后续回报 $G_t$</td><td class="hl">通常等 episode 后续奖励</td><td class="hl">无自举偏差，方差较高</td></tr>
+  </table>
+  </div>
+
+  <h2>关键公式（结论附带）</h2>
+
+  <div class="formgrp">
+    <div class="gt">第 9 章所有公式围绕 $J(\theta)\to\nabla J\to$ 样本梯度</div>
+    <div class="form">
+      <div class="fh"><span class="chip">策略梯度上升</span><span class="use">最大化策略指标</span></div>
+      <div class="fb">$$\theta_{t+1}=\theta_t+\alpha\nabla_\theta J(\theta_t)$$</div>
+    </div>
+    <div class="form">
+      <div class="fh"><span class="chip">平均状态价值</span><span class="use">折扣回报目标</span></div>
+      <div class="fb">$$
+\bar v_\pi
+=\sum_s d(s)v_\pi(s)
+=\mathbb E_{S\sim d}[v_\pi(S)]
+=\mathbb E\left[\sum_{t=0}^{\infty}\gamma^tR_{t+1}\right]
+$$</div>
+    </div>
+    <div class="form">
+      <div class="fh"><span class="chip">平均奖励</span><span class="use">continuing task 常用</span></div>
+      <div class="fb">$$\bar r_\pi=\sum_s d_\pi(s)r_\pi(s),\qquad r_\pi(s)=\sum_a\pi(a|s,\theta)r(s,a)$$</div>
+    </div>
+    <div class="form">
+      <div class="fh"><span class="chip">Policy gradient theorem</span><span class="use">统一梯度形式</span></div>
+      <div class="fb">$$\nabla_\theta J(\theta)=\mathbb E_{S\sim\eta,A\sim\pi}[\nabla_\theta\ln\pi(A|S,\theta)q_\pi(S,A)]$$</div>
+    </div>
+    <div class="form">
+      <div class="fh"><span class="chip">Softmax policy</span><span class="use">保证合法概率</span></div>
+      <div class="fb">$$\pi(a|s,\theta)=\frac{e^{h(s,a,\theta)}}{\sum_{a'}e^{h(s,a',\theta)}}$$</div>
+    </div>
+    <div class="form">
+      <div class="fh"><span class="chip">REINFORCE</span><span class="use">MC 策略梯度</span></div>
+      <div class="fb">$$\theta\leftarrow\theta+\alpha G_t\nabla_\theta\ln\pi(a_t|s_t,\theta),\qquad G_t=\sum_{k=t+1}^{T}\gamma^{k-t-1}r_k$$</div>
+    </div>
+  </div>
+
+  <div class="insight">
+    <span class="lab">核心洞见</span><br>
+    第 9 章把强化学习从“先估价值、再导出策略”推进到“直接优化策略”。它的关键桥梁是 policy gradient theorem：虽然目标 $J(\theta)$ 是长期回报，但梯度可以用每个采样动作的 log 概率梯度乘上动作价值来估计。REINFORCE 是最朴素的实现：用完整回报 $G_t$ 当动作价值估计。
+  </div>
+
+  <h2>核心概念（结论速记）</h2>
+  <div class="tags">
+    <span class="tag">policy representation</span><span class="tag">policy-based method</span>
+    <span class="tag">metric $J(\theta)$</span><span class="tag">average state value</span>
+    <span class="tag">average reward</span><span class="tag">stationary distribution</span>
+    <span class="tag">policy gradient theorem</span><span class="tag">log-trick</span>
+    <span class="tag">softmax policy</span><span class="tag">REINFORCE</span>
+    <span class="tag">on-policy</span><span class="tag">Monte Carlo policy gradient</span>
+  </div>
+
+  <h2>上接 / 下启</h2>
+  <p><strong>上接 Ch8：</strong>第 8 章把价值函数变成参数化函数；第 9 章把策略本身变成参数化函数，并直接优化策略表现。</p>
+  <div class="next"><strong>下启 → <a href="./ch10.html">Ch10 Actor-Critic</a>：</strong>
+    REINFORCE 用 MC return 估计 $q_\pi$，方差高。下一章会让 critic 学价值来帮助 actor 更新策略，把 value-based 和 policy-based 两条线合在一起。</div>
+
+</div>
+</body>
+</html>

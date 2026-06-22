@@ -1,6 +1,7 @@
 # 第 7 章补充：为什么 $\mathbb E[q_\pi(S_{t+1},A_{t+1})|s,a]=\mathbb E[v_\pi(S_{t+1})|s,a]$
 
 > 学习日期 2026-06-13 · 对应 7.2-7.4 · 重点：嵌套期望、$v_\pi$ 与 $q_\pi$ 的转换
+> ⚠️ **重叠提醒**：本文是「严格版」，直觉版见 [02_supplement-law-of-total-expectation.md](./02_supplement-law-of-total-expectation.md)（用「年级平均分」类比讲同一恒等式）。二刷确认后可二选一或合并。
 
 ## 要解决的问题
 

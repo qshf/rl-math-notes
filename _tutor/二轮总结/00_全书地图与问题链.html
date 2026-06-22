@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1-10 章总地图 · 从 MDP 到 Actor-Critic</title>
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+<style>
+  :root{
+    --bg:#f6f8fa; --card:#fff; --ink:#1f2328; --muted:#59636e;
+    --accent:#0969da; --green:#1a7f37; --amber:#9a6700; --line:#d1d9e0;
+    --red:#cf222e;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+    line-height:1.75;}
+  .wrap{max-width:980px;margin:0 auto;padding:30px 20px 90px;}
+  h1{font-size:1.62rem;margin:0 0 2px;}
+  .sub{color:var(--muted);font-size:.9rem;margin:0 0 14px;}
+  .nav{display:flex;flex-wrap:wrap;gap:8px;font-size:.88rem;margin:0 0 18px;}
+  .nav a{color:var(--accent);text-decoration:none;background:#ddf4ff;border:1px solid #b6e3ff;
+    border-radius:18px;padding:3px 11px;}
+  .mainq{background:linear-gradient(0deg,#fff8c5,#fffdf0);border:1px solid #eac54f;
+    border-left:5px solid var(--amber);border-radius:8px;padding:14px 16px;margin:0 0 16px;}
+  .mainq b{color:#7a5200;}
+  h2{font-size:1.12rem;margin:30px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px;}
+  .qcard{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:0 0 14px;margin:0;box-shadow:0 1px 3px rgba(31,35,40,.07);overflow:hidden;}
+  .qhead{display:flex;align-items:flex-start;gap:10px;padding:13px 16px 6px;}
+  .qnum{flex:none;background:var(--accent);color:#fff;font-size:.78rem;font-weight:700;
+    border-radius:20px;padding:3px 11px;margin-top:2px;white-space:nowrap;}
+  .qtext{font-weight:650;font-size:1.06rem;}
+  .why{padding:2px 16px 0;color:#374151;}
+  .why .lab{color:var(--muted);font-size:.8rem;font-weight:700;letter-spacing:.04em;}
+  .concl{margin:12px 16px 0;background:#eef6ff;border:1px solid #cfe4ff;border-radius:8px;
+    padding:9px 13px;}
+  .concl .lab{color:var(--accent);font-size:.78rem;font-weight:700;margin-right:6px;}
+  .bridge{display:flex;flex-direction:column;align-items:center;color:var(--muted);
+    font-size:.9rem;margin:7px 0;}
+  .bridge .ar{color:var(--accent);font-size:1.25rem;line-height:1;}
+  .bridge .nq{background:#f0f3f6;border:1px dashed #aeb6bf;border-radius:18px;
+    padding:3px 12px;margin-top:3px;}
+  .chain{margin:14px 0;}
+  .formgrp{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:4px 18px 12px;margin-bottom:14px;box-shadow:0 1px 3px rgba(31,35,40,.07);}
+  .formgrp .gt{font-weight:650;font-size:1.04rem;margin:12px 0 2px;}
+  .form{padding:11px 0;border-top:1px solid #eef1f4;}
+  .form:first-of-type{border-top:none;}
+  .form .fh{display:flex;flex-wrap:wrap;align-items:baseline;gap:9px;margin-bottom:1px;}
+  .form .chip{flex:none;background:#eef6ff;color:#0a4c8b;border:1px solid #cfe4ff;
+    border-radius:16px;padding:2px 11px;font-size:.83rem;font-weight:600;white-space:nowrap;}
+  .form .use{color:var(--muted);font-size:.88rem;}
+  .form .fb,.fb{overflow-x:auto;overflow-y:hidden;padding:3px 2px;}
+  table.ex{border-collapse:collapse;margin:8px 0;font-size:.9rem;width:100%;}
+  table.ex th,table.ex td{border:1px solid var(--line);padding:7px 11px;text-align:left;vertical-align:top;}
+  table.ex th{background:#f0f3f6;}
+  table.ex td.hl{background:#fff8c5;}
+  table.mini{border-collapse:collapse;margin:6px 0 0;font-size:.86rem;width:100%;}
+  table.mini th,table.mini td{border:1px solid #d8dee4;padding:4px 7px;text-align:left;vertical-align:top;}
+  table.mini th{background:#f6f8fa;color:var(--muted);font-weight:650;}
+  table.mini td:first-child{white-space:nowrap;color:var(--muted);font-weight:650;}
+  .cmpwrap{overflow-x:auto;}
+  .insight{background:#dafbe1;border:1px solid #aceebb;border-left:5px solid var(--green);
+    border-radius:8px;padding:12px 15px;margin:18px 0;}
+  .insight .lab{color:var(--green);font-weight:700;}
+  .warn{background:#fff1f1;border:1px solid #ffd6d6;border-left:5px solid var(--red);
+    border-radius:8px;padding:12px 15px;margin:14px 0;}
+  .warn .lab{color:var(--red);font-weight:700;}
+  .tags .tag{display:inline-block;background:#ddf4ff;color:#0a4c8b;border-radius:18px;
+    padding:3px 11px;font-size:.84rem;margin:3px 5px 3px 0;}
+  .chaptergrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:10px 0 16px;}
+  .chaptergrid a{display:block;text-decoration:none;color:var(--ink);background:#fff;border:1px solid var(--line);
+    border-radius:8px;padding:9px 8px;min-height:84px;}
+  .chaptergrid b{display:block;color:var(--accent);font-size:.84rem;margin-bottom:3px;}
+  .chaptergrid span{display:block;font-size:.82rem;color:var(--muted);line-height:1.45;}
+  .next{background:#fff;border:1px solid var(--line);border-left:5px solid var(--green);
+    border-radius:8px;padding:12px 15px;}
+  a.reflink,.next a{color:var(--accent);text-decoration:none;font-weight:600;}
+  @media (max-width:760px){
+    .chaptergrid{grid-template-columns:repeat(2,minmax(0,1fr));}
+    .qhead{display:block;}
+    .qnum{display:inline-block;margin-bottom:6px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>1-10 章总地图 · 从 MDP 到 Actor-Critic</h1>
+  <div class="sub">全局问题链 · 参考 Ch1-Ch10 章节地图更新 · <a class="reflink" href="./00_%E5%85%A8%E4%B9%A6%E5%9C%B0%E5%9B%BE%E4%B8%8E%E9%97%AE%E9%A2%98%E9%93%BE.md">原 Markdown 版</a></div>
+  <div class="nav">
+    <a href="./%E7%AB%A0%E8%8A%82%E5%9C%B0%E5%9B%BE/ch01.html">Ch1</a>
+    <a href="./%E7%AB%A0%E8%8A%82%E5%9C%B0%E5%9B%BE/ch02.html">Ch2</a>
+    <a href="./%E7%AB%A0%E8%8A%82%E5%9C%B0%E5%9B%BE/ch03.html">Ch3</a>
+    <a href="./%E7%AB%A0%E8%8A%82%E5%9C%B0%E5%9B%BE/ch04.html">Ch4</a>
+	    <a href="./%E7%AB%A0%E8%8A%82%E5%9C%B0%E5%9B%BE/ch05.html">Ch5</a>
+	    <a href="./%E7%AB%A0%E8%8A%82%E5%9C%B0%E5%9B%BE/ch06.html">Ch6</a>
+	    <a href="./%E7%AB%A0%E8%8A%82%E5%9C%B0%E5%9B%BE/ch07.html">Ch7</a>
+	    <a href="./%E7%AB%A0%E8%8A%82%E5%9C%B0%E5%9B%BE/ch08.html">Ch8</a>
+	    <a href="./%E7%AB%A0%E8%8A%82%E5%9C%B0%E5%9B%BE/ch09.html">Ch9</a>
+	    <a href="./%E7%AB%A0%E8%8A%82%E5%9C%B0%E5%9B%BE/ch10.html">Ch10</a>
+	  </div>
+
+	  <div class="mainq">
+	    <b>1-10 章主问题：</b>怎样从“智能体和环境交互”这件事，一步步走到<strong>不用模型、能在线学习、能处理大规模状态，并能直接优化策略</strong>？<br>
+	    <span style="color:#7a5200">一句话答案：Ch1 把问题翻译成 MDP；Ch2-Ch3 写出策略评估与最优性的 Bellman 方程；Ch4-Ch7 从模型已知走到 model-free TD；Ch8 把表格价值换成函数近似；Ch9 直接参数化策略；Ch10 让 actor 的策略梯度和 critic 的 TD 价值学习合体。</span>
+	  </div>
+
+  <div class="chaptergrid">
+    <a href="./%E7%AB%A0%E8%8A%82%E5%9C%B0%E5%9B%BE/ch01.html"><b>Ch1 语言</b><span>MDP：状态、动作、奖励、策略、转移、回报</span></a>
+    <a href="./%E7%AB%A0%E8%8A%82%E5%9C%B0%E5%9B%BE/ch02.html"><b>Ch2 评估</b><span>给定 $\pi$，用 $v_\pi,q_\pi$ 和 BE 衡量好坏</span></a>
+    <a href="./%E7%AB%A0%E8%8A%82%E5%9C%B0%E5%9B%BE/ch03.html"><b>Ch3 最优</b><span>把按策略平均换成取最大，得到 BOE</span></a>
+    <a href="./%E7%AB%A0%E8%8A%82%E5%9C%B0%E5%9B%BE/ch04.html"><b>Ch4 精确解</b><span>模型已知：VI / PI / GPI 解 BOE</span></a>
+	    <a href="./%E7%AB%A0%E8%8A%82%E5%9C%B0%E5%9B%BE/ch05.html"><b>Ch5 采样解</b><span>模型未知：用 return 平均估 $q_\pi$</span></a>
+	    <a href="./%E7%AB%A0%E8%8A%82%E5%9C%B0%E5%9B%BE/ch06.html"><b>Ch6 地基</b><span>样本平均升级成随机近似和 SGD</span></a>
+	    <a href="./%E7%AB%A0%E8%8A%82%E5%9C%B0%E5%9B%BE/ch07.html"><b>Ch7 在线解</b><span>TD：一步样本 + 自举 target + 增量更新</span></a>
+	    <a href="./%E7%AB%A0%E8%8A%82%E5%9C%B0%E5%9B%BE/ch08.html"><b>Ch8 泛化</b><span>用 $\hat v,\hat q$ 和参数 $w$ 代替表格</span></a>
+	    <a href="./%E7%AB%A0%E8%8A%82%E5%9C%B0%E5%9B%BE/ch09.html"><b>Ch9 策略</b><span>直接学 $\pi(a|s,\theta)$，用 PG / REINFORCE</span></a>
+	    <a href="./%E7%AB%A0%E8%8A%82%E5%9C%B0%E5%9B%BE/ch10.html"><b>Ch10 合体</b><span>Actor-Critic：actor 改策略，critic 给信号</span></a>
+	  </div>
+
+  <h2>主线问题链</h2>
+  <div class="chain">
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">Ch1 · MDP</span>
+        <span class="qtext">先把“学习”翻译成可计算的随机过程</span></div>
+      <div class="why"><span class="lab">本章回答</span><br>
+        智能体处在状态 $s$，选择动作 $a$，环境按概率 $p(s',r|s,a)$ 给出下一状态和奖励，策略 $\pi(a|s)$ 决定动作分布。长期目标不是单步奖励，而是折扣回报 $G_t$。</div>
+      <div class="concl"><span class="lab">接力棒</span> 有了 MDP 语言，下一步才能问：给定一个策略 $\pi$，它到底好不好？</div>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">给定策略，怎么定量评估？</span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">Ch2 · BE</span>
+        <span class="qtext">用价值函数评估一个策略</span></div>
+      <div class="why"><span class="lab">本章回答</span><br>
+        $v_\pi(s)$ 是从状态 $s$ 出发、按策略 $\pi$ 行动的期望回报；$q_\pi(s,a)$ 是先做动作 $a$ 后再按 $\pi$ 行动的期望回报。Bellman equation 把“长期回报”拆成“一步奖励 + 下个状态的价值”。</div>
+      <div class="concl"><span class="lab">接力棒</span> Ch2 只会评估一个给定策略；下一步要问：所有策略里最好的那个怎么刻画？</div>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">从评估一个策略，升级到寻找最优策略</span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">Ch3 · BOE</span>
+        <span class="qtext">把“按策略平均”换成“取最大”</span></div>
+      <div class="why"><span class="lab">本章回答</span><br>
+        最优值 $v_*,q_*$ 满足 Bellman optimality equation。和 Ch2 的 BE 相比，关键变化是：不再按固定 $\pi$ 对动作加权，而是在每个状态里选能让未来价值最大的动作。</div>
+      <div class="concl"><span class="lab">接力棒</span> BOE 刻画了最优解，但它非线性，不能像线性 BE 那样直接求逆；下一步要把它变成算法。</div>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">BOE 怎么实际求？先假设模型已知</span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">Ch4 · DP / GPI</span>
+        <span class="qtext">模型已知时，用迭代解 Bellman 方程</span></div>
+      <div class="why"><span class="lab">本章回答</span><br>
+        值迭代直接反复套 Bellman optimality operator；策略迭代交替做 policy evaluation 和 policy improvement；截断策略迭代把两者连成一条连续谱。统一名字叫 GPI：评估一点，改进一点，再评估。</div>
+      <div class="concl"><span class="lab">接力棒</span> Ch4 的硬前提是已知 $p,r$。现实里模型常常未知，下一步只能靠采样。</div>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">模型未知，期望算不出怎么办？</span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">Ch5 · MC</span>
+        <span class="qtext">用完整后续回报的平均替代模型期望</span></div>
+      <div class="why"><span class="lab">本章回答</span><br>
+        $q_\pi(s,a)$ 本质是回报的期望。模型未知时，不计算转移概率，只收集很多条完整 episode，把访问到的 $(s,a)$ 后续回报拿来平均。MC Exploring Starts、every-visit、$\epsilon$-greedy 都是在解决覆盖与样本效率。</div>
+      <div class="concl"><span class="lab">接力棒</span> MC 摆脱了模型；every-visit / 逐 episode 版本可以一条 episode 结束后立刻更新沿途所有 visit，但仍要先知道这些 visit 的完整后续回报 $G_t$。下一步要问：能不能不等完整回报，只来一步就更新？</div>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">样本一个个来，怎样增量更新还保证收敛？</span></div>
+
+    <div class="qcard">
+      <div class="qhead"><span class="qnum">Ch6 · SA</span>
+        <span class="qtext">随机近似给所有“旧值 + 步长 × 误差”打地基</span></div>
+      <div class="why"><span class="lab">本章回答</span><br>
+        样本平均可以写成 $w_{k+1}=w_k+\alpha_k(x_k-w_k)$。Robbins-Monro 把它推广为带噪求根；Dvoretzky 给误差收敛模板；SGD 是把随机近似用于优化。它不是又一个 RL 算法，而是后面 TD、函数近似、策略梯度的共同数学语法。</div>
+      <div class="concl"><span class="lab">接力棒</span> 现在我们知道增量更新为什么合理；下一步把 Bellman target 也做成一步样本 target。</div>
+    </div>
+
+    <div class="bridge"><span class="ar">▼</span><span class="nq">能不能不等完整后续回报，一步样本到手就学？</span></div>
+
+	    <div class="qcard">
+	      <div class="qhead"><span class="qnum">Ch7 · TD</span>
+	        <span class="qtext">采样 + 自举 + 随机近似，合成在线 model-free 学习</span></div>
+	      <div class="why"><span class="lab">本章回答</span><br>
+	        TD target 用“一步真实奖励 + 当前价值估计”替代完整回报。Sarsa 用实际下一动作学习 $q_\pi$；Expected Sarsa 把下一动作先求期望；$n$-step Sarsa 调节真实展开步数；Q-learning 用 $\max_{a'}q(s',a')$ 直接朝 $q_*$ 学。</div>
+	      <div class="concl"><span class="lab">接力棒</span> 到 Ch7，表格型 RL 的主线闭合了：不用模型、在线更新、可做策略控制。下一大问题是：状态/动作太多，表格存不下怎么办？</div>
+	    </div>
+
+	    <div class="bridge"><span class="ar">▼</span><span class="nq">状态太多，表格存不下怎么办？</span></div>
+
+	    <div class="qcard">
+	      <div class="qhead"><span class="qnum">Ch8 · Value Function Approximation</span>
+	        <span class="qtext">把表格价值换成参数化函数</span></div>
+	      <div class="why"><span class="lab">本章回答</span><br>
+	        不再给每个 $s$ 或 $(s,a)$ 存一个格子，而是用 $\hat v(s,w)$、$\hat q(s,a,w)$ 表示价值。更新从“改一个格子”变成“用 MC return 或 TD target 最小化预测误差，更新参数 $w$”。线性 TD、LSTD 和 DQN 都是这条线的不同落点。</div>
+	      <div class="concl"><span class="lab">接力棒</span> 函数近似解决了价值表太大的问题，但仍常常是“先学价值，再从价值导出策略”。下一步问：能不能直接学习策略本身？</div>
+	    </div>
+
+	    <div class="bridge"><span class="ar">▼</span><span class="nq">能否跳过学值，直接参数化策略？</span></div>
+
+	    <div class="qcard">
+	      <div class="qhead"><span class="qnum">Ch9 · Policy Gradient</span>
+	        <span class="qtext">把策略写成 $\pi(a|s,\theta)$，沿表现指标的梯度上升</span></div>
+	      <div class="why"><span class="lab">本章回答</span><br>
+	        先选标量指标 $J(\theta)$ 衡量策略好坏，再用 policy gradient theorem 把 $\nabla_\theta J$ 写成可采样的期望 $\mathbb E[\nabla_\theta\ln\pi(A|S,\theta)q_\pi(S,A)]$。REINFORCE 用完整回报 $G_t$ 估计动作价值，得到最朴素的 Monte Carlo 策略梯度。</div>
+	      <div class="concl"><span class="lab">接力棒</span> 策略梯度能直接改策略，但 $q_\pi$ 用 MC return 估时方差高、更新晚。下一步要把 value learner 接回来，专门给 actor 提供评价信号。</div>
+	    </div>
+
+	    <div class="bridge"><span class="ar">▼</span><span class="nq">值方法与策略方法能否合体？</span></div>
+
+	    <div class="qcard">
+	      <div class="qhead"><span class="qnum">Ch10 · Actor-Critic</span>
+	        <span class="qtext">actor 负责改策略，critic 负责在线估评价信号</span></div>
+	      <div class="why"><span class="lab">本章回答</span><br>
+	        QAC 把 REINFORCE 的 MC return 换成 TD critic 的 $q(s,a,w)$；A2C 用 baseline / advantage 把绝对价值换成相对好坏；off-policy AC 用 importance weight 处理样本来自 $\beta$；deterministic AC 让 actor 直接输出连续动作并沿 $\nabla_a q$ 改动作。</div>
+	      <div class="concl"><span class="lab">阶段终点</span> 到 Ch10，value-based 与 policy-based 两条线合流：critic 提供低方差评价，actor 提供可微策略。这就是许多现代深度 RL 算法的骨架。</div>
+	    </div>
+	  </div>
+
+  <h2>章节核心公式链（用公式论证主线）</h2>
+  <div class="cmpwrap">
+  <table class="ex">
+    <tr><th>章</th><th>核心公式</th><th>公式证明的核心思路</th><th>它推出的下一问</th></tr>
+    <tr><td><b>Ch1</b><br>MDP 语言</td><td>$M=(\mathcal S,\mathcal A,p,r,\gamma)$<br>$G_t=\sum_{k=0}^{\infty}\gamma^kR_{t+k+1}$</td><td>RL 不是只看当前奖励，而是在 MDP 里最大化长期折扣回报。</td><td>既然目标是长期回报，给定策略 $\pi$ 时如何算它的期望回报？</td></tr>
+    <tr><td><b>Ch2</b><br>Bellman equation</td><td>$v_\pi(s)=\mathbb E_\pi[R_{t+1}+\gamma v_\pi(S_{t+1})\mid S_t=s]$</td><td>长期回报可递归拆成“一步奖励 + 下个状态价值”，所以策略评估变成解自洽方程。</td><td>如果不只是评估一个 $\pi$，而是要找最好的 $\pi$，方程怎么变？</td></tr>
+    <tr><td><b>Ch3</b><br>Bellman optimality equation</td><td>$q_*(s,a)=\mathbb E[R_{t+1}+\gamma\max_{a'}q_*(S_{t+1},a')\mid S_t=s,A_t=a]$</td><td>把“按策略平均”换成“对动作取最大”，就从 $q_\pi$ 升级到最优动作值 $q_*$。</td><td>BOE 给了最优性的方程，但这个非线性方程如何实际求解？</td></tr>
+    <tr><td><b>Ch4</b><br>DP / GPI</td><td>$q_\pi(s,a)=\sum_{s',r}p(s',r|s,a)[r+\gamma v_\pi(s')]$<br>$\pi_{new}(s)=\arg\max_a q_\pi(s,a)$</td><td>GPI 的两步在公式里很清楚：先用<strong>已知模型</strong> $p,r$ 算出每个动作的期望回报 $q_\pi$，再对 $q_\pi$ 贪心改进策略。</td><td>如果 $p(s',r|s,a)$ 不知道，第一步的模型期望算不了，还能不能得到 $q_\pi(s,a)$？</td></tr>
+    <tr><td><b>Ch5</b><br>Monte Carlo</td><td>$q_\pi(s,a)=\mathbb E_\pi[G_t\mid S_t=s,A_t=a]$<br>$q(s,a)\leftarrow \frac1{N(s,a)}\sum_{i=1}^{N(s,a)}G_i(s,a)$</td><td>Ch5 没换目标，仍是在给 GPI 估 $q_\pi$；只是把 Ch4 的<strong>模型期望</strong> $\sum p(\cdot)[\cdot]$ 换成<strong>采样平均</strong>。every-visit 会在本条 episode 结束后反向算出所有 $G_t$ 并立刻更新。</td><td>现在 $q_\pi$ 能免模型估了，但 $G_t$ 仍要等完整后续回报；能不能只用一步奖励加估计值来更新？</td></tr>
+	    <tr><td><b>Ch6</b><br>随机近似</td><td>$w_{k+1}=w_k+\alpha_k(\text{sample}_k-w_k)$<br>$w_{k+1}=w_k-a_k\tilde g(w_k,\eta_k)$</td><td>样本平均、RM、SGD 都是“旧估计 + 步长 × 带噪误差”；步长条件控制噪声并保证收敛。</td><td>如果 sample target 换成 Bellman target，能不能每一步环境交互后立刻更新价值？</td></tr>
+	    <tr><td><b>Ch7</b><br>TD / Sarsa / Q-learning</td><td>$q_{t+1}(s_t,a_t)=q_t(s_t,a_t)+\alpha_t[\bar q_t-q_t(s_t,a_t)]$<br>$\bar q_t=r_{t+1}+\gamma\,[\text{下一步价值项}]$<table class="mini"><tr><th>算法</th><th>下一步价值项</th></tr><tr><td>Sarsa</td><td>$q_t(s_{t+1},a_{t+1})$</td></tr><tr><td>Expected Sarsa</td><td>$\sum_{a'}\pi(a'|s_{t+1})q_t(s_{t+1},a')$</td></tr><tr><td>Q-learning</td><td>$\max_{a'}q_t(s_{t+1},a')$</td></tr></table></td><td>TD 把 Ch5 的采样和 Ch6 的增量更新合起来；统一壳子不变，不同算法只是在换 $\bar q_t$ 里的下一步价值项。</td><td>到这里仍要存表格 $q(s,a)$；状态/动作太多时，下一章要用函数近似。</td></tr>
+	    <tr><td><b>Ch8</b><br>值函数近似</td><td>$\hat y(x,w)\in\{\hat v(s,w),\hat q(s,a,w)\}$<br>$w_{t+1}=w_t+\alpha[\text{target}-\hat y(x_t,w_t)]\nabla_w\hat y(x_t,w_t)$<table class="mini"><tr><th>选择</th><th>含义</th></tr><tr><td>$x_t=s_t$</td><td>近似状态值 $\hat v(s,w)$</td></tr><tr><td>$x_t=(s_t,a_t)$</td><td>近似动作值 $\hat q(s,a,w)$</td></tr><tr><td>target</td><td>可用 MC return、TD target 或 DQN target</td></tr></table></td><td>把表格值换成参数函数；更新不再只改一个格子，而是沿梯度改共享参数，让相似状态可以泛化。</td><td>价值函数能近似了，但控制仍常是从价值导出策略；能不能直接优化策略函数？</td></tr>
+	    <tr><td><b>Ch9</b><br>策略梯度</td><td>$\nabla_\theta J(\theta)=\mathbb E[\nabla_\theta\ln\pi(A|S,\theta)\,[\text{价值信号}]]$<br>$\theta\leftarrow\theta+\alpha[\text{价值信号}]_t\nabla_\theta\ln\pi(a_t|s_t,\theta)$<table class="mini"><tr><th>选择</th><th>价值信号</th></tr><tr><td>理论 PG</td><td>$q_\pi(S,A)$</td></tr><tr><td>REINFORCE</td><td>$G_t$ 近似 $q_\pi(s_t,a_t)$</td></tr><tr><td>带 baseline</td><td>$G_t-b(s_t)$ 或 $q_\pi-v_\pi$</td></tr></table></td><td>把策略本身参数化，用 log-trick 把目标梯度写成可采样期望；本章最朴素实现用 MC return 估 $q_\pi$。</td><td>MC 估 $q_\pi$ 方差大；能不能用 TD critic 在线给策略梯度提供低方差信号？</td></tr>
+	    <tr><td><b>Ch10</b><br>Actor-Critic</td><td>$\theta_{t+1}=\theta_t+\alpha_\theta[\text{actor 信号}]_t$<br>$w_{t+1}=w_t+\alpha_w[\text{critic 信号}]_t$<table class="mini"><tr><th>算法</th><th>actor 信号 / critic 信号</th></tr><tr><td>QAC</td><td>$\nabla_\theta\ln\pi\,q(s_t,a_t,w_t)$ / $\delta_t\nabla_wq$</td></tr><tr><td>A2C</td><td>$\delta_t\nabla_\theta\ln\pi$ / $\delta_t\nabla_wv$</td></tr><tr><td>Off-policy AC</td><td>$c_t\delta_t\nabla_\theta\ln\pi$ / $c_t\delta_t\nabla_wv$</td></tr><tr><td>Deterministic AC</td><td>$\nabla_\theta\mu\,\nabla_aq$ / $\delta_t\nabla_wq$</td></tr></table></td><td>actor 用策略梯度改策略，critic 用 TD 学价值或 advantage；A2C、off-policy AC、deterministic AC 都是在换 critic 信号或策略形式。</td><td>本书主线合流：现代 RL 多是在 AC 骨架上继续加稳定化、约束和探索机制。</td></tr>
+	  </table>
+  </div>
+  <div class="concl" style="margin:10px 0 0">
+	    <span class="lab">关键桥</span>
+	    Ch4 → Ch7 是“同一个 Bellman / GPI 目标，逐步换估计方式”；Ch8 → Ch10 是“同一个增量更新壳子，逐步把表格值换成函数、把贪心策略换成可微策略、再把两条线合成 actor-critic”。
+	  </div>
+
+	  <h2>1-10 章到底在放松哪些假设？</h2>
+  <div class="cmpwrap">
+  <table class="ex">
+    <tr><th>阶段</th><th>代表章节</th><th>已经会什么</th><th>放松了什么限制</th><th>还剩什么限制</th></tr>
+    <tr><td>数学语言</td><td>Ch1</td><td>把交互写成 MDP</td><td>把口头问题变成随机变量与概率</td><td>还没定义策略好坏</td></tr>
+    <tr><td>策略评估</td><td>Ch2</td><td>用 BE 解 $v_\pi,q_\pi$</td><td>长期回报可递推计算</td><td>只评估给定 $\pi$</td></tr>
+    <tr><td>最优刻画</td><td>Ch3</td><td>用 BOE 刻画 $v_*,q_*,\pi_*$</td><td>从评估走向最优控制</td><td>还只是方程，不是算法</td></tr>
+    <tr><td>模型已知算法</td><td>Ch4</td><td>VI / PI / GPI</td><td>BOE 变成可执行迭代</td><td class="hl">必须知道模型 $p,r$</td></tr>
+    <tr><td>模型未知采样</td><td>Ch5</td><td>MC 用 return 平均估价值</td><td class="hl">不再需要模型</td><td>要等该 visit 的后续回报 $G_t$ 可计算；episodic 任务里通常是本条 episode 结束后反向更新</td></tr>
+	    <tr><td>增量更新地基</td><td>Ch6</td><td>RM / Dvoretzky / SGD</td><td>样本可边来边更新</td><td>还没接回 Bellman target</td></tr>
+	    <tr><td>在线 TD</td><td>Ch7</td><td>TD / Sarsa / Q-learning</td><td class="hl">不用模型，也不等完整后续回报</td><td>仍是 tabular 表格方法</td></tr>
+	    <tr><td>函数近似</td><td>Ch8</td><td>TD-Linear / LSTD / DQN</td><td class="hl">不再逐格存表，参数可泛化</td><td>非线性近似训练更不稳定，需要 target network、replay 等机制</td></tr>
+	    <tr><td>直接优化策略</td><td>Ch9</td><td>Policy Gradient / REINFORCE</td><td class="hl">不必从 $q$ 贪心导出策略，直接学 $\pi(a|s,\theta)$</td><td>用 MC return 估 $q_\pi$ 时方差大、样本效率低</td></tr>
+	    <tr><td>值与策略合流</td><td>Ch10</td><td>QAC / A2C / off-policy AC / deterministic AC</td><td class="hl">critic 用 TD 给 actor 提供评价信号</td><td>仍要处理稳定性、偏差方差、off-policy 校正与连续动作探索</td></tr>
+	  </table>
+  </div>
+
+	  <h2>四条公式主线</h2>
+	  <div class="formgrp">
+	    <div class="gt">1. 策略评估：给定 $\pi$，解 Bellman equation</div>
+    <div class="fb">$$
+v_\pi(s)=\mathbb E_\pi[R_{t+1}+\gamma v_\pi(S_{t+1})\mid S_t=s]
+$$</div>
+    <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">读法：当前状态的价值 = 一步奖励 + 下个状态价值。Ch2 的全部策略评估都围绕这句话。</p>
+
+    <div class="form">
+      <div class="fh"><span class="chip">2. 最优控制</span><span class="use">把按策略走，换成选最好动作</span></div>
+      <div class="fb">$$
+q_*(s,a)=\mathbb E[R_{t+1}+\gamma\max_{a'}q_*(S_{t+1},a')\mid S_t=s,A_t=a]
+$$</div>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">Ch3 写出 BOE，Ch4 在模型已知时解它，Ch7 的 Q-learning 用样本近似它。</p>
+    </div>
+
+	    <div class="form">
+	      <div class="fh"><span class="chip">3. 增量学习</span><span class="use">所有在线算法的共同壳子</span></div>
+      <div class="fb">$$
+\text{new estimate}
+=
+\text{old estimate}
++\alpha(\text{sample target}-\text{old estimate})
+$$</div>
+	      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">Ch6 证明这种带噪更新为什么能收敛；Ch7 的 TD、Sarsa、Q-learning 只是换不同的 sample target。</p>
+	    </div>
+
+	    <div class="form">
+	      <div class="fh"><span class="chip">4. 参数化优化</span><span class="use">从价值参数 $w$ 到策略参数 $\theta$</span></div>
+	      <div class="fb">$$
+w\leftarrow w+\alpha\delta\nabla_w\hat v(s,w),
+\qquad
+\theta\leftarrow\theta+\alpha\,\widehat A\,\nabla_\theta\ln\pi(a|s,\theta)
+$$</div>
+	      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">Ch8 更新价值函数参数 $w$；Ch9 更新策略参数 $\theta$；Ch10 用 critic 的 $\delta$ 或 advantage 作为 actor 的更新信号。</p>
+	    </div>
+	  </div>
+
+  <h2>MC、随机近似、TD 的关系不要混</h2>
+  <div class="cmpwrap">
+  <table class="ex">
+    <tr><th>方法</th><th>target 从哪里来</th><th>什么时候更新</th><th>是否自举</th><th>它在主线里的角色</th></tr>
+    <tr><td><b>MC</b></td><td>完整后续回报 $G_t$</td><td>本条 episode 结束后反向算 $G_t$，可立刻更新沿途所有 visit</td><td>否</td><td>第一次真正摆脱模型，用采样平均代替期望</td></tr>
+    <tr><td><b>随机近似</b></td><td>任意带噪观测</td><td>样本一来就能更新</td><td>不特指</td><td>给 $w\leftarrow w+\alpha(\cdot)$ 这类更新提供数学框架</td></tr>
+    <tr><td><b>TD</b></td><td>$r+\gamma v(s')$ 或 $r+\gamma q(s',a')$</td><td class="hl">每一步都能更新</td><td class="hl">是，用当前估计接尾巴</td><td>把 MC 的 model-free 和 Ch6 的增量更新合并起来</td></tr>
+  </table>
+  </div>
+
+	  <div class="insight">
+	    <span class="lab">核心洞见</span><br>
+	    Ch1-Ch10 不是十个散章，而是一条逐步现实化的链：先定义问题，再定义价值和最优；再从模型已知的 DP 放松到 model-free 的 MC/TD；再从表格放松到函数近似；最后从“学值再导出策略”推进到“直接学策略”，并在 Actor-Critic 中让 TD critic 和 policy-gradient actor 合流。
+	  </div>
+
+	  <h2>看到一个算法时，先问这 7 件事</h2>
+  <div class="cmpwrap">
+  <table class="ex">
+    <tr><th>问题</th><th>为什么重要</th><th>例子</th></tr>
+    <tr><td>它在学 $v_\pi/q_\pi$，还是 $v_*/q_*$？</td><td>区分 policy evaluation 与 control</td><td>Sarsa 学 $q_\pi$；Q-learning 学 $q_*$</td></tr>
+    <tr><td>它要不要模型 $p,r$？</td><td>区分 DP 和 model-free</td><td>VI/PI 要模型；MC/TD 不要</td></tr>
+	    <tr><td>target 是完整回报还是自举 target？</td><td>区分 MC 与 TD</td><td>MC 用 $G_t$；TD 用 $r+\gamma v(s')$</td></tr>
+	    <tr><td>样本怎么覆盖状态-动作对？</td><td>决定是否学得准</td><td>exploring starts、$\epsilon$-greedy、behavior policy</td></tr>
+	    <tr><td>更新是批量、逐 episode，还是逐 step？</td><td>决定算法能否在当前 episode 还没结束时更新</td><td>MC 可逐 episode 更新；TD 可逐 step 更新</td></tr>
+	    <tr><td>学的是表格、价值函数参数，还是策略参数？</td><td>区分 tabular、function approximation、policy gradient</td><td>TD 改表格；DQN 改网络 $w$；REINFORCE/A2C 改 $\theta$</td></tr>
+	    <tr><td>actor 的评价信号来自哪里？</td><td>区分 REINFORCE 与 Actor-Critic</td><td>REINFORCE 用 $G_t$；A2C 用 critic 的 $\delta_t$ 近似 advantage</td></tr>
+	  </table>
+  </div>
+
+  <div class="warn">
+    <span class="lab">二刷易错提醒</span><br>
+	    不要把“取最大”一概理解成“策略一定纯 greedy”。在 Q-learning 里，TD target 可以用 $\max_{a'}q(s',a')$；但实现时行为策略可以是 $\epsilon$-greedy、uniform，或其他探索策略。on-policy / off-policy 说的是行为策略和目标策略的关系；online / offline 说的是什么时候处理样本。
+	    到 Ch10 还要再加一层：actor-critic 不是“不要价值函数”，而是把价值估计变成 critic，专门服务于 actor 的策略梯度。
+	  </div>
+
+  <h2>核心概念标签</h2>
+  <div class="tags">
+    <span class="tag">MDP</span><span class="tag">discounted return</span>
+    <span class="tag">$v_\pi$ / $q_\pi$</span><span class="tag">Bellman equation</span>
+    <span class="tag">$v_*$ / $q_*$</span><span class="tag">Bellman optimality equation</span>
+    <span class="tag">GPI</span><span class="tag">model-based / model-free</span>
+	    <span class="tag">Monte Carlo</span><span class="tag">Robbins-Monro</span>
+	    <span class="tag">TD target</span><span class="tag">Sarsa</span>
+	    <span class="tag">Q-learning</span><span class="tag">function approximation</span>
+	    <span class="tag">DQN</span><span class="tag">policy gradient</span>
+	    <span class="tag">REINFORCE</span><span class="tag">Actor-Critic</span>
+	    <span class="tag">A2C</span><span class="tag">on-policy / off-policy</span>
+	  </div>
+
+	  <h2>上接 / 下启</h2>
+	  <p><strong>上接：</strong>这一页是 Ch1-Ch10 的全局综合层；每章内部细节进入上方章节地图。</p>
+	  <div class="next"><strong>下启 → 现代深度强化学习：</strong>
+	    Ch10 已经给出主骨架：actor 表示策略，critic 提供价值信号。PPO、TRPO、SAC、DDPG、TD3 等现代算法，大多是在这个骨架上继续处理稳定性、约束、探索、熵正则和 off-policy 数据复用。</div>
+
+</div>
+</body>
+</html>
