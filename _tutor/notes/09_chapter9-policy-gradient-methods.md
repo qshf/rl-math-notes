@@ -1033,27 +1033,355 @@ $$
 
 这一节是策略梯度方法的核心。前一节解决“优化什么”，这一节解决“怎么优化”。
 
-### 1. Policy gradient theorem 的主公式
+### 0. $J(\theta)$ 是从哪里来的？
 
-原书先给出最重要的结论：
+先把 9.1、9.2、9.3 的关系接起来。原书 9.1 说：当策略不再是一张表，而是一个带参数的函数
 
 $$
-\nabla_{\theta}J(\theta)
+\pi(a\mid s,\theta)
+$$
+
+时，不能再像 tabular policy 那样直接改表格里的每个概率。我们唯一能改的是参数 $\theta$。所以需要先把“这个策略好不好”压成一个 scalar metric 标量指标，然后用梯度法改 $\theta$：
+
+$$
+\theta_{t+1}
 =
-\sum_{s\in\mathcal S}\eta(s)\sum_{a\in\mathcal A}\nabla_{\theta}\pi(a\mid s,\theta)\,q_\pi(s,a). \tag{9.8}
+\theta_t+\alpha\nabla_\theta J(\theta_t).
 $$
 
-读法：先看哪些状态重要，用状态分布 $\eta(s)$ 加权；再看在这个状态下各动作对参数的敏感程度 $\nabla_\theta\pi(a\mid s,\theta)$；最后乘上动作价值 $q_\pi(s,a)$，表示“这个动作到底值不值得被放大”。
+这里的 $J(\theta)$ 暂时只是一个占位名字，意思是：
 
-这条公式的直觉很像：
+> 当前参数 $\theta$ 诱导出的策略 $\pi(\theta)$，在某个评价标准下能拿多少分。
 
-- **状态分布 $\eta$**：哪些状态值得重点关注
-- **策略导数 $\nabla_\theta\pi$**：改参数后，动作概率会怎么变
-- **动作价值 $q_\pi$**：这个动作对长期回报到底有多好
+然后 9.2 才回答：这个“多少分”具体可以选什么。原文给了两大类 metric 指标。
 
-所以策略梯度不是“只看概率”，而是“概率变化方向 × 动作好坏 × 状态重要性”。
+第一类是 average state value 平均状态价值：
 
-Theorem 9.1 还给出一个更紧凑的期望形式：
+$$
+\bar v_\pi
+=
+\sum_{s\in\mathcal S}d(s)v_\pi(s)
+=
+\mathbb E_{S\sim d}[v_\pi(S)].
+$$
+
+如果把一条轨迹的折扣累计奖励写出来，它也常被记成：
+
+$$
+J(\theta)
+=
+\mathbb E\left[\sum_{t=0}^{\infty}\gamma^tR_{t+1}\right]. \tag{9.1}
+$$
+
+原书马上说明，这个式子其实等于 $\bar v_\pi$。为什么？因为按初始状态分布 $d$ 拆开全期望：
+
+$$
+\mathbb E\left[\sum_{t=0}^{\infty}\gamma^tR_{t+1}\right]
+=
+\sum_s d(s)
+\mathbb E\left[\sum_{t=0}^{\infty}\gamma^tR_{t+1}\mid S_0=s\right]
+=
+\sum_s d(s)v_\pi(s)
+=
+\bar v_\pi.
+$$
+
+第二类是 average reward 平均一步奖励：
+
+$$
+\bar r_\pi
+=
+\sum_{s\in\mathcal S}d_\pi(s)r_\pi(s)
+=
+\mathbb E_{S\sim d_\pi}[r_\pi(S)]. \tag{9.2}
+$$
+
+在长期平均奖励文献里，它也常被写成：
+
+$$
+J(\theta)
+=
+\lim_{n\to\infty}
+\frac{1}{n}
+\mathbb E\left[
+\sum_{t=0}^{n-1}R_{t+1}
+\right]. \tag{9.4}
+$$
+
+原书证明这个式子等于 $\bar r_\pi$。
+
+所以 $J(\theta)$ 不是突然冒出来的第三个新对象，而是 9.1 给出的统一占位符：
+
+| 如果你选的优化指标是 | 那么 $J(\theta)$ 具体就是 |
+|---|---|
+| 固定初始分布下的折扣回报 | $\bar v_\pi^0=d_0^Tv_\pi$ |
+| 平稳分布加权的折扣状态价值 | $\bar v_\pi=d_\pi^Tv_\pi$ |
+| 长期平均一步奖励 | $\bar r_\pi=d_\pi^Tr_\pi$ |
+
+⚠️ 更准确地说，$J$ 应该写成 $J(\theta)$，是因为 $\pi$ 由 $\theta$ 决定，$v_\pi$、$r_\pi$、$d_\pi$ 又都由策略 $\pi$ 决定。因此有一条依赖链：
+
+$$
+\theta
+\Longrightarrow
+\pi(\cdot\mid\cdot,\theta)
+\Longrightarrow
+v_\pi,\ r_\pi,\ d_\pi
+\Longrightarrow
+J(\theta).
+$$
+
+9.3 说“calculate the gradients of the metrics”，其实就是对 9.2 这些可选指标统一求
+
+$$
+\nabla_\theta J(\theta).
+$$
+
+### 1. 从一个具体目标出发：先推 $\bar v_\pi^0$
+
+为了不要一上来就被抽象的 $\eta$ 绕住，先选一个最干净的目标：
+
+$$
+J(\theta)=\bar v_\pi^0=d_0^Tv_\pi
+=
+\sum_{s_0\in\mathcal S}d_0(s_0)v_\pi(s_0).
+$$
+
+这里 $d_0$ 是固定的 initial distribution 初始分布，不依赖策略参数 $\theta$。因此对 $J$ 求导时，$d_0$ 可以当作常数：
+
+$$
+\nabla_\theta J(\theta)
+=
+\sum_{s_0\in\mathcal S}d_0(s_0)\nabla_\theta v_\pi(s_0). \tag{A}
+$$
+
+所以问题变成：怎么算
+
+$$
+\nabla_\theta v_\pi(s_0)?
+$$
+
+### 2. 核心：$\nabla_\theta v_\pi(s_0)$ 会看见未来所有状态
+
+普通值函数满足：
+
+$$
+v_\pi(s)
+=
+\sum_{a\in\mathcal A}
+\pi(a\mid s,\theta)q_\pi(s,a).
+$$
+
+对 $\theta$ 求导，第一步确实有两项：
+
+$$
+\nabla_\theta v_\pi(s)
+=
+\sum_a
+\left[
+\nabla_\theta\pi(a\mid s,\theta)q_\pi(s,a)
++
+\pi(a\mid s,\theta)\nabla_\theta q_\pi(s,a)
+\right]. \tag{9.15}
+$$
+
+这里最关键的是：**$\nabla_\theta q_\pi$ 没有被忽略。** 因为
+
+$$
+q_\pi(s,a)
+=
+r(s,a)
++
+\gamma\sum_{s'}p(s'\mid s,a)v_\pi(s'),
+$$
+
+且环境奖励 $r(s,a)$ 不依赖 $\theta$，所以：
+
+$$
+\nabla_\theta q_\pi(s,a)
+=
+\gamma\sum_{s'}p(s'\mid s,a)\nabla_\theta v_\pi(s').
+$$
+
+代回 (9.15)，再把
+
+$$
+p_\pi(s'\mid s)
+\doteq
+\sum_a\pi(a\mid s,\theta)p(s'\mid s,a)
+$$
+
+记作策略 $\pi$ 诱导的状态转移概率，得到递推式：
+
+$$
+\nabla_\theta v_\pi(s)
+=
+\underbrace{
+\sum_a\nabla_\theta\pi(a\mid s,\theta)q_\pi(s,a)
+}_{u(s):\ \text{状态 }s\text{ 的局部策略梯度项}}
++
+\gamma\sum_{s'}p_\pi(s'\mid s)\nabla_\theta v_\pi(s'). \tag{9.16}
+$$
+
+这句话的意思是：
+
+> 从 $s$ 出发的价值变化 = 当前状态动作概率变化的直接影响 + 未来状态价值变化传回来的影响。
+
+把这个递推式展开，可以得到 Lemma 9.2：
+
+$$
+\nabla_\theta v_\pi(s_0)
+=
+\sum_{s\in\mathcal S}
+\Pr_\pi(s\mid s_0)
+\sum_{a\in\mathcal A}
+\nabla_\theta\pi(a\mid s,\theta)q_\pi(s,a). \tag{9.14}
+$$
+
+其中
+
+$$
+\Pr_\pi(s\mid s_0)
+\doteq
+\sum_{k=0}^{\infty}\gamma^k[P_\pi^k]_{s_0s}
+$$
+
+表示从起点 $s_0$ 出发，折扣访问状态 $s$ 的总权重。详细计算见：[补充：Lemma 9.2 从 (9.15) 到 (9.14) 怎么算](./09_supplement-lemma-9.2-from-9.15-to-9.14.md)。
+
+### 3. 把 $\nabla_\theta v_\pi(s_0)$ 代回 $J(\theta)$
+
+把 (9.14) 代回 (A)：
+
+$$
+\begin{array}{l}
+\nabla_\theta J(\theta)
+=
+\sum_{s_0}d_0(s_0)
+\sum_s
+\Pr_\pi(s\mid s_0)
+\sum_a\nabla_\theta\pi(a\mid s,\theta)q_\pi(s,a).
+\end{array}
+$$
+
+现在把对 $s_0$ 和 $s$ 的求和顺序换一下：
+
+$$
+\nabla_\theta J(\theta)
+=
+\sum_s
+\left[
+\sum_{s_0}d_0(s_0)\Pr_\pi(s\mid s_0)
+\right]
+\sum_a\nabla_\theta\pi(a\mid s,\theta)q_\pi(s,a).
+$$
+
+中括号里的东西定义成 discounted state visitation distribution 折扣状态访问分布：
+
+$$
+\rho_\pi(s)
+\doteq
+\sum_{s_0}d_0(s_0)\Pr_\pi(s\mid s_0). \tag{9.19}
+$$
+
+于是：
+
+$$
+\nabla_\theta J(\theta)
+=
+\sum_s
+\rho_\pi(s)
+\sum_a\nabla_\theta\pi(a\mid s,\theta)q_\pi(s,a). \tag{B}
+$$
+
+这就是 Theorem 9.2 的核心结果。它已经有了 policy gradient theorem 的求和形状：
+
+$$
+\nabla_\theta J(\theta)
+=
+\sum_s
+\eta(s)
+\sum_a\nabla_\theta\pi(a\mid s,\theta)q_\pi(s,a), \tag{9.8}
+$$
+
+只是在这个具体目标里，
+
+$$
+\eta=\rho_\pi.
+$$
+
+其他目标只是把 $\eta$ 换成别的状态分布：
+
+| 目标 $J(\theta)$ | $\eta$ 是谁 | 结论性质 |
+|---|---|---|
+| $\bar v_\pi^0=d_0^Tv_\pi$ | $\rho_\pi$，从初始分布出发的折扣访问权重 | 严格等式 |
+| $\bar r_\pi$ 或 $\bar v_\pi=d_\pi^Tv_\pi$ | $d_\pi$，策略长期平稳分布 | 折扣情形下是近似 |
+| 无折扣 continuing task 的 $\bar r_\pi$ | $d_\pi$ | 严格等式 |
+
+所以 Theorem 9.1 不是凭空给公式，而是在说：不同指标的梯度最终都能整理成 (9.8) 这个模板，区别主要藏在 $\eta$ 里。
+
+### 4. 从 (9.8) 推到期望形式 (9.9)
+
+现在只剩一步：把求和式改写成可以采样估计的期望式。
+
+从 (9.8) 出发：
+
+$$
+\nabla_\theta J(\theta)
+=
+\sum_s\eta(s)\sum_a\nabla_\theta\pi(a\mid s,\theta)q_\pi(s,a).
+$$
+
+使用 log-trick 对数技巧：
+
+$$
+\nabla_\theta\ln\pi(a\mid s,\theta)
+=
+\frac{\nabla_\theta\pi(a\mid s,\theta)}{\pi(a\mid s,\theta)}.
+$$
+
+所以：
+
+$$
+\nabla_\theta\pi(a\mid s,\theta)
+=
+\pi(a\mid s,\theta)\nabla_\theta\ln\pi(a\mid s,\theta). \tag{9.11}
+$$
+
+代入 (9.8)：
+
+$$
+\begin{array}{l}
+\nabla_\theta J(\theta)
+=
+\sum_s\eta(s)\sum_a
+\pi(a\mid s,\theta)
+\nabla_\theta\ln\pi(a\mid s,\theta)
+q_\pi(s,a).
+\end{array}
+$$
+
+现在看这个式子已经是一个 joint expectation 联合期望。令：
+
+$$
+S\sim\eta,\qquad A|S=s\sim\pi(\cdot\mid s,\theta).
+$$
+
+离散情形下，任意函数 $f(S,A)$ 的期望是：
+
+$$
+\mathbb E_{S\sim\eta,\ A\sim\pi(S,\theta)}[f(S,A)]
+=
+\sum_s\eta(s)\sum_a\pi(a\mid s,\theta)f(s,a).
+$$
+
+这里取
+
+$$
+f(s,a)
+=
+\nabla_\theta\ln\pi(a\mid s,\theta)q_\pi(s,a),
+$$
+
+于是：
 
 $$
 \nabla_{\theta}J(\theta)
@@ -1064,199 +1392,19 @@ $$
 \Big]. \tag{9.9}
 $$
 
-这个式子更适合后面用样本估计，因为它已经写成“对随机状态和随机动作取期望”的形式。
-
-这里的期望下标：
+这就是从原理到 (9.9) 的完整路径：
 
 $$
-\mathbb E_{S\sim\eta,\ A\sim\pi(S,\theta)}[\cdots]
+J(\theta)
+\Longrightarrow
+\nabla_\theta v_\pi
+\Longrightarrow
+\sum_s\eta(s)\sum_a\nabla_\theta\pi(a\mid s,\theta)q_\pi(s,a)
+\Longrightarrow
+\mathbb E[\nabla_\theta\ln\pi(A\mid S,\theta)q_\pi(S,A)].
 $$
 
-读作：先按状态分布 $\eta$ 抽一个状态 $S$，再在这个状态下按当前策略 $\pi(\cdot\mid S,\theta)$ 抽一个动作 $A$，最后对括号里的量取平均。
-
-所以它不是说“两个互不相关的平均”，而是一个 joint expectation 联合期望。因为动作分布依赖抽到的状态 $S$，所以更完整地写应是：
-
-$$
-S\sim\eta,\qquad
-A|S=s\sim\pi(\cdot\mid s,\theta).
-$$
-
-离散情况下，把这个期望完全展开就是：
-
-$$
-\begin{array}{l}
-\mathbb E_{S\sim\eta,\ A\sim\pi(S,\theta)}
-\left[
-f(S,A)
-\right] \\
-=
-\sum_{s\in\mathcal S}
-\eta(s)
-\sum_{a\in\mathcal A}
-\pi(a\mid s,\theta)
-f(s,a).
-\end{array}
-$$
-
-在 (9.9) 里：
-
-$$
-f(s,a)
-=
-\nabla_\theta\ln\pi(a\mid s,\theta)q_\pi(s,a).
-$$
-
-因此 (9.9) 展开后就是：
-
-$$
-\sum_{s\in\mathcal S}
-\eta(s)
-\sum_{a\in\mathcal A}
-\pi(a\mid s,\theta)
-\nabla_\theta\ln\pi(a\mid s,\theta)q_\pi(s,a).
-$$
-
-这和 (9.8) 的区别只差一步 log-trick。也就是说，(9.9) 不是换了一个新结论，而是把 (9.8) 改写成“可以用采样估计”的形式。
-
-### 2. 为什么会出现 $\ln \pi$？
-
-从 (9.8) 到 (9.9) 的关键一步是：
-
-$$
-\nabla_{\theta}\ln \pi(a\mid s,\theta)
-=
-\frac{\nabla_{\theta}\pi(a\mid s,\theta)}{\pi(a\mid s,\theta)}.
-$$
-
-于是：
-
-$$
-\nabla_{\theta}\pi(a\mid s,\theta)
-=
-\pi(a\mid s,\theta)\nabla_{\theta}\ln \pi(a\mid s,\theta). \tag{9.11}
-$$
-
-这就是 log-trick 对数技巧。它的好处是把“概率的梯度”变成“对数概率的梯度”，后面很容易写成采样期望。
-
-这里最容易疑惑的是：$\nabla_\theta\ln\pi$ 里面明明有一个分母 $\pi(a\mid s,\theta)$，为什么到 (9.9) 的期望形式里看起来“分母没了”？
-
-关键是：**分母没有凭空消失，而是和按动作采样的概率权重抵消了。**
-
-先固定一个状态 $s$，只看动作求和部分。原式是：
-
-$$
-\sum_{a\in\mathcal A}
-\nabla_\theta\pi(a\mid s,\theta)q_\pi(s,a).
-$$
-
-用 log-trick：
-
-$$
-\nabla_\theta\pi(a\mid s,\theta)
-=
-\pi(a\mid s,\theta)\nabla_\theta\ln\pi(a\mid s,\theta).
-$$
-
-代入：
-
-$$
-\sum_{a\in\mathcal A}
-\pi(a\mid s,\theta)
-\nabla_\theta\ln\pi(a\mid s,\theta)
-q_\pi(s,a).
-$$
-
-这已经正好是“对 $A\sim\pi(\cdot\mid s,\theta)$ 取期望”的形式：
-
-$$
-\mathbb E_{A\sim\pi(\cdot\mid s,\theta)}
-\left[
-\nabla_\theta\ln\pi(A\mid s,\theta)q_\pi(s,A)
-\right].
-$$
-
-为什么？因为对离散动作来说：
-
-$$
-\mathbb E_{A\sim\pi}[f(A)]
-=
-\sum_a \pi(a\mid s,\theta)f(a).
-$$
-
-这里的
-
-$$
-f(a)=\nabla_\theta\ln\pi(a\mid s,\theta)q_\pi(s,a).
-$$
-
-所以展开期望时，外面天然会带一个 $\pi(a\mid s,\theta)$：
-
-$$
-\sum_a
-\pi(a\mid s,\theta)
-\left[
-\nabla_\theta\ln\pi(a\mid s,\theta)q_\pi(s,a)
-\right].
-$$
-
-再把 $\nabla_\theta\ln\pi$ 展开：
-
-$$
-\sum_a
-\pi(a\mid s,\theta)
-\left[
-\frac{\nabla_\theta\pi(a\mid s,\theta)}{\pi(a\mid s,\theta)}
-q_\pi(s,a)
-\right].
-$$
-
-这时你就能看到分母被谁抵消了：
-
-$$
-\pi(a\mid s,\theta)
-\cdot
-\frac{\nabla_\theta\pi(a\mid s,\theta)}{\pi(a\mid s,\theta)}
-=
-\nabla_\theta\pi(a\mid s,\theta).
-$$
-
-于是回到原来的动作求和：
-
-$$
-\sum_a\nabla_\theta\pi(a\mid s,\theta)q_\pi(s,a).
-$$
-
-所以 (9.9) 不是少了分母，而是把分母藏进了“按策略概率采样动作”的期望写法里。
-
-**一个两动作小例子。** 假设在状态 $s$ 下：
-
-$$
-\pi(a_1\mid s,\theta)=0.8,\qquad
-\pi(a_2\mid s,\theta)=0.2.
-$$
-
-那么期望形式展开就是：
-
-$$
-\begin{array}{l}
-\mathbb E_{A\sim\pi}
-[\nabla_\theta\ln\pi(A\mid s,\theta)q_\pi(s,A)]\\
-=
-0.8
-\frac{\nabla_\theta\pi(a_1\mid s,\theta)}{0.8}
-q_\pi(s,a_1)
-+
-0.2
-\frac{\nabla_\theta\pi(a_2\mid s,\theta)}{0.2}
-q_\pi(s,a_2)\\
-=
-\nabla_\theta\pi(a_1\mid s,\theta)q_\pi(s,a_1)
-+
-\nabla_\theta\pi(a_2\mid s,\theta)q_\pi(s,a_2).
-\end{array}
-$$
-
-这就是分母“消掉”的具体过程。
+⚠️ 这里的 $\pi(a\mid s,\theta)$ 需要大于 0，否则 $\ln\pi(a\mid s,\theta)$ 没有定义。分母并没有消失，而是在期望展开时和动作采样权重 $\pi(a\mid s,\theta)$ 抵消了。
 
 ⚠️ 这里要求 $\pi(a\mid s,\theta)>0$，不然 $\ln \pi(a\mid s,\theta)$ 没法定义。所以原书马上引入 softmax：
 
@@ -1273,7 +1421,7 @@ $$
 
 这也是神经网络策略最常见的输出层形式。
 
-### 3. 一个最小数值例子：softmax 为什么自然给出概率
+### 4. 一个最小数值例子：softmax 为什么自然给出概率
 
 假设某状态下两个动作的偏好分数是：
 
@@ -1296,7 +1444,7 @@ $$
 
 所以 softmax 是 stochastic stochastic 随机策略的天然实现方式。
 
-### 4. discounted case 的主线
+### 5. discounted case 的主线
 
 在折扣情形 $\gamma\in(0,1)$ 下，原书先重新写出：
 
@@ -1320,17 +1468,35 @@ $$
 
 这说明在折扣任务里，最大化 $\bar r_\pi$ 和最大化 $\bar v_\pi$ 是同一方向，只差一个正比例常数。
 
-### 5. 先记住一条关键线
+### 6. 先记住一条关键线
 
 这一节的核心不是先算所有细节，而是先把主线记住：
 
 $$
 \boxed{
 \nabla_\theta J(\theta)
-\approx
+\quad\leadsto\quad
 \mathbb E\big[\nabla_\theta\ln\pi(A\mid S,\theta)\,q_\pi(S,A)\big]
 }
 $$
+
+这里我不再直接写成单纯的 $\approx$，因为它会掩盖一个重要区别：
+
+| 情形 | 这条式子是等号还是近似 | 原因 |
+|---|---|---|
+| Theorem 9.2：$J=\bar v_\pi^0=d_0^Tv_\pi,\ S\sim\rho_\pi$ | 严格等号 | $d_0$ 不依赖 $\theta$，状态权重整理成 $\rho_\pi$ 后没有丢项 |
+| Theorem 9.3：折扣情形下 $J=\bar r_\pi$ 或 $\bar v_\pi,\ S\sim d_\pi$ | 近似 | $d_\pi$ 本身依赖 $\theta$，严格求导会出现 $\nabla_\theta d_\pi$ 项，原书在 $\gamma\to1$ 时近似忽略 |
+| Theorem 9.5：无折扣 average reward，$S\sim d_\pi$ | 严格等号 | 平均奖励推导中相关项可以严格抵消 |
+
+所以如果这里只是记主线，可以读成：
+
+$$
+\nabla_\theta J(\theta)
+\ \text{具有如下 policy-gradient 形状：}\ 
+\mathbb E\big[\nabla_\theta\ln\pi(A\mid S,\theta)q_\pi(S,A)\big].
+$$
+
+至于到底是 $=$ 还是 $\approx$，要回到具体定理看 $J$ 和 $S$ 的分布怎么选。
 
 意思是：
 
@@ -1338,7 +1504,7 @@ $$
 
 这就是策略梯度的直觉。
 
-### 6. 和 9.2 的闭环
+### 7. 和 9.2 的闭环
 
 9.2 告诉我们 $J(\theta)$ 可以选成 $\bar v_\pi$ 或 $\bar r_\pi$。  
 9.3 告诉我们这些指标的梯度都可以写成“状态分布 × 策略梯度 × 动作价值”的形式。
@@ -1357,7 +1523,7 @@ $$
 
 下一步就是把这个理论梯度变成可以采样估计的 stochastic gradient。
 
-### 7. Lemma 9.1：为什么 $\bar r_\pi=(1-\gamma)\bar v_\pi$
+### 8. Lemma 9.1：为什么 $\bar r_\pi=(1-\gamma)\bar v_\pi$
 
 在折扣情形下，平均价值和平均奖励有一个简单关系：
 
@@ -1403,7 +1569,7 @@ $$
 
 读法：折扣累计价值 $\bar v_\pi$ 大约是把每一步平均奖励 $\bar r_\pi$ 按几何级数累起来；所以反过来，一步平均奖励就是 $(1-\gamma)$ 倍的累计价值。
 
-### 8. Lemma 9.2：为什么 $\nabla_\theta v_\pi(s)$ 会牵出未来所有状态
+### 9. Lemma 9.2：为什么 $\nabla_\theta v_\pi(s)$ 会牵出未来所有状态
 
 接下来原书推导 state value 对策略参数的梯度。这里很容易把两个式子混在一起，所以先把“普通的 $v_\pi(s)$ 公式”和“对参数求导后的公式”分开。
 
@@ -1525,7 +1691,7 @@ $$
 
 这个式子的数值例子单独放在补充文档里，因为真正关键的不是“给定一个 $\Pr_\pi(s'\mid s)$ 以后怎么乘”，而是 $\Pr_\pi(s'\mid s)$ 怎样由 $P_\pi,\gamma$ 和未来多步访问累加出来。见：
 
-[详细说明：补充了例子](./09_supplement-lemma-9.2-discounted-total-probability)
+[详细说明：补充了例子](./09_supplement-lemma-9.2-discounted-total-probability.md)
 
 这条式子的含义很重要：
 
@@ -1579,7 +1745,7 @@ $$
 I+\gamma P_\pi+\gamma^2P_\pi^2+\cdots.
 $$
 
-### 9. Theorem 9.2 和 9.3：两种状态分布视角
+### 10. Theorem 9.2 和 9.3：两种状态分布视角
 
 这一段先不要陷进推导。Theorem 9.2 和 Theorem 9.3 都想得到同一个 policy-gradient 形状：
 
@@ -1700,7 +1866,7 @@ $$
 
 [Theorem 9.2 和 9.3 推导补充](./09_supplement-theorem-9.2-9.3-gradient-derivations)
 
-### 10. undiscounted case：为什么要重新定义价值
+### 11. undiscounted case：为什么要重新定义价值
 
 当 $\gamma=1$ 时，如果直接定义：
 
@@ -1745,7 +1911,7 @@ $$
 
 差别是：无折扣情形把每一步奖励减去平均奖励 $\bar r_\pi$，避免无限累加发散。
 
-### 11. Theorem 9.5：无折扣平均奖励的梯度最干净
+### 12. Theorem 9.5：无折扣平均奖励的梯度最干净
 
 在 undiscounted case 无折扣情形，平均奖励梯度有严格公式：
 
@@ -1770,7 +1936,7 @@ $$
 
 注意这里不再是近似，而是严格等式。这也是为什么 average reward formulation 在 continuing tasks 中很重要。
 
-### 12. 本节几个公式放在一起看
+### 13. 本节几个公式放在一起看
 
 | 情形 | 目标 $J(\theta)$ | 状态分布 | 梯度形式 |
 |---|---|---|---|
