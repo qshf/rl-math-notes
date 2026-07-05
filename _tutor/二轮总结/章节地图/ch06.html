@@ -237,16 +237,23 @@ $$</div>
   <div class="formgrp">
     <div class="gt">三种同构更新：都长成“旧值 + 步长 × 修正量”</div>
     <div class="form">
-      <div class="fh"><span class="chip">增量均值</span><span class="use">样本把估计往自己方向拉</span></div>
-      <div class="fb">$$w_{k+1}=w_k+\alpha_k(x_k-w_k)$$</div>
+      <div class="fh"><span class="chip">一般形式</span><span class="use">理想情况能直接看到 $g(w_k)$；目标是让 $g(w)=0$</span></div>
+      <div class="fb">$$w_{k+1}=w_k-\alpha_k g(w_k)$$</div>
+      <div class="fb">$$\hat g(w_k)=g(w_k)+\eta_k,\qquad w_{k+1}=w_k-\alpha_k\hat g(w_k)$$</div>
     </div>
     <div class="form">
-      <div class="fh"><span class="chip">Robbins-Monro</span><span class="use">带噪函数值判断根在哪边</span></div>
+      <div class="fh"><span class="chip">Robbins-Monro</span><span class="use">看不到 $g$，就用带噪观测 $\hat g=\tilde g$ 代替</span></div>
       <div class="fb">$$w_{k+1}=w_k-a_k\tilde g(w_k,\eta_k)$$</div>
+    </div>
+    <div class="form">
+      <div class="fh"><span class="chip">增量均值</span><span class="use">样本把估计往自己方向拉；它也是带噪求根</span></div>
+      <div class="fb">$$w_{k+1}=w_k+\alpha_k(x_k-w_k)=w_k-\alpha_k(w_k-x_k)$$</div>
+      <div class="fb">$$\underbrace{w_k-x_k}_{\hat g(w_k)}=\underbrace{(w_k-\mathbb E[X])}_{g(w_k)}+\underbrace{(\mathbb E[X]-x_k)}_{\eta_k}$$</div>
     </div>
     <div class="form">
       <div class="fh"><span class="chip">SGD</span><span class="use">单样本梯度代替真实期望梯度</span></div>
       <div class="fb">$$w_{k+1}=w_k-\alpha_k\nabla_w f(w_k,x_k)$$</div>
+      <div class="fb">$$\underbrace{\nabla_w f(w_k,x_k)}_{\hat g(w_k)}=\underbrace{\mathbb E[\nabla_w f(w_k,X)]}_{g(w_k)}+\underbrace{\big(\nabla_w f(w_k,x_k)-\mathbb E[\nabla_w f(w_k,X)]\big)}_{\eta_k}$$</div>
     </div>
     <div class="form">
       <div class="fh"><span class="chip">Dvoretzky 误差模板</span><span class="use">证明工具：看误差怎么变</span></div>

@@ -157,6 +157,37 @@
       <p style="margin:8px 0 0;color:var(--muted);font-size:.88rem">三者不是三个孤立算法，而是「评估做多透」这根连续轴上的三个取值。前面的手算例子正好印证：VI 慢慢爬向 $[2,2]$，PI 一步到位。</p>
     </div>
 
+    <div class="formgrp">
+      <div class="gt">容易混的一句话：确实主要差在 $v$ 怎么取，但不是同一个 $v$ 少算/多算而已</div>
+      <table class="ex" style="width:100%">
+        <tr><th>看什么</th><th>值迭代 VI</th><th>策略迭代 PI</th><th>怎么记</th></tr>
+        <tr>
+          <td>每轮手里有什么</td>
+          <td>一个临时估计 $v_k$</td>
+          <td>一个明确策略 $\pi_k$</td>
+          <td class="hl">VI 先追 $v^*$；PI 先追当前策略的价值</td>
+        </tr>
+        <tr>
+          <td>$v$ 的含义</td>
+          <td>$v_k$ 通常不是任何策略的真实价值，只是逼近 $v^*$ 的中间量</td>
+          <td>$v_{\pi_k}$ 是当前策略 $\pi_k$ 的真实/充分评估价值</td>
+          <td>VI 的 $v$ 是“猜测值”；PI 的 $v$ 是“策略成绩单”</td>
+        </tr>
+        <tr>
+          <td>这一轮怎么算 $v$</td>
+          <td>做一次带 $\max$ 的最优 Bellman 更新：$v_{k+1}(s)=\max_a q_k(s,a)$</td>
+          <td>固定 $\pi_k$，把 Bellman expectation equation 解到收敛：$v_{\pi_k}=r_{\pi_k}+\gamma P_{\pi_k}v_{\pi_k}$</td>
+          <td class="hl">VI：算 1 次；PI：算到底</td>
+        </tr>
+        <tr>
+          <td>后续动作</td>
+          <td>继续用新的 $v_{k+1}$ 再做下一次最优更新；最后再提取贪心策略</td>
+          <td>用 $v_{\pi_k}$ 贪心改进成 $\pi_{k+1}$，再重新评估新策略</td>
+          <td>都要反复迭代，但 VI 反复更新值，PI 反复“评估策略 + 改策略”</td>
+        </tr>
+      </table>
+    </div>
+
     <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>能不能用一个统一框架概括这三个？</b></span></div>
 
     <div class="qcard">

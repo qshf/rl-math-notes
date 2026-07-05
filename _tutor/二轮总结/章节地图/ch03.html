@@ -123,7 +123,7 @@
         <span class="qtext">右边的最大化 $\max_\pi$ 怎么求？</span></div>
       <div class="why"><span class="lab">思路</span><br>
         BOE 写全是 $v(s)=\max_\pi\sum_a\pi(a\mid s)q(s,a)$。各状态相互独立，而对一个概率分布加权求和取最大，最优做法就是<strong>把全部概率压到 $q$ 最大的那个动作上</strong>（确定性贪心）。所以 $\max_\pi$ 等价于逐元素 $\max_a$——这也说明<strong>存在确定性的最优策略</strong>。</div>
-      <div class="concl"><span class="lab">结论</span> 最优 $\pi$ 在 $\arg\max_a q(s,a)$ 处取 1 $\;\Rightarrow\; v(s)=\max_a q(s,a)$</div>
+      <div class="concl"><span class="lab">结论</span> 最优 $\pi$ 把 $\arg\max_a q(s,a)$ 中某个最大动作的选择概率设为 $1$ $\;\Rightarrow\; v(s)=\max_a q(s,a)$</div>
     </div>
 
     <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>$v$ 两边都有、还带 max，能像 BE 那样求逆解吗？</b></span></div>
