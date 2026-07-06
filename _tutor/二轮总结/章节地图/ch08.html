@@ -152,7 +152,11 @@ $$</div>
       <div class="qhead"><span class="qnum">问题 3 · 8.2.2</span>
         <span class="qtext">用 MC return 或 TD target 替代真实标签</span></div>
       <div class="why"><span class="lab">思路</span><br>
-        若真实 $v_\pi(s_t)$ 已知，随机梯度更新会是 $(v_\pi(s_t)-\hat v(s_t,w_t))\nabla_w\hat v(s_t,w_t)$。但 RL 的真值未知，所以用可采样的目标替代：MC 用完整回报 $g_t$，TD 用 $r_{t+1}+\gamma\hat v(s_{t+1},w_t)$。</div>
+        目标不是“随便调参数”，而是让函数输出 $\hat v(s,w)$ 尽量贴近真实价值 $v_\pi(s)$，也就是<strong>最小化拟合误差</strong>。若真实标签 $v_\pi(s_t)$ 已知，单样本平方误差
+        <div class="fb">$$\ell_t(w)=\frac12\big(v_\pi(s_t)-\hat v(s_t,w)\big)^2$$</div>
+        的梯度下降会得到
+        <div class="fb">$$w_{t+1}=w_t+\alpha_t\big(v_\pi(s_t)-\hat v(s_t,w_t)\big)\nabla_w\hat v(s_t,w_t).$$</div>
+        但 RL 的真值标签不可见，所以把 $v_\pi(s_t)$ 换成可采样 target：MC 用完整回报 $g_t$，TD 用 $r_{t+1}+\gamma\hat v(s_{t+1},w_t)$。于是“拟合真实价值”变成“拟合样本 target”。</div>
       <div class="concl"><span class="lab">结论</span> 函数近似 TD：$w_{t+1}=w_t+\alpha_t\delta_t\nabla_w\hat v(s_t,w_t)$，其中 $\delta_t=r_{t+1}+\gamma\hat v(s_{t+1},w_t)-\hat v(s_t,w_t)$。</div>
     </div>
 
@@ -164,6 +168,16 @@ $$</div>
           这里的“标签”是 $v_\pi(S)$，如果它已知，就几乎是普通监督学习。</span></div>
         <div class="it"><span class="k" style="background:#1a7f37">梯度</span><span class="tx">对 $J(w)$ 做梯度下降，常数 2 并入步长后：
           <span class="fb">$$w_{k+1}=w_k+\alpha_k\mathbb E[(v_\pi(S)-\hat v(S,w_k))\nabla_w\hat v(S,w_k)].$$</span>
+          单样本版本可以从平方误差直接看出来：
+          <span class="fb">$$
+\begin{aligned}
+\ell_t(w)&=\frac12\big(y_t-\hat v(s_t,w)\big)^2,\\
+\nabla_w\ell_t(w)&=-(y_t-\hat v(s_t,w))\nabla_w\hat v(s_t,w),\\
+w_{t+1}&=w_t-\alpha_t\nabla_w\ell_t(w_t)
+=w_t+\alpha_t(y_t-\hat v(s_t,w_t))\nabla_w\hat v(s_t,w_t).
+\end{aligned}
+$$</span>
+          这里 $y_t$ 是“标签”：理想情况下 $y_t=v_\pi(s_t)$。
           用单个状态样本 $s_t$ 估计期望，就得到不可实现的随机梯度：
           <span class="fb">$$w_{t+1}=w_t+\alpha_t(v_\pi(s_t)-\hat v(s_t,w_t))\nabla_w\hat v(s_t,w_t).$$</span></span></div>
         <div class="it"><span class="k" style="background:#9a6700">替换</span><span class="tx">$v_\pi(s_t)$ 正是未知量，所以把它换成可采样 target：
@@ -263,6 +277,26 @@ $$</div>
     </div>
 
     <div class="formgrp">
+      <div class="gt">为什么可以把 $\hat v(s,w)$ 换成 $\hat q(s,a,w)$？</div>
+      <p style="margin:4px 0;color:var(--muted);font-size:.9rem">
+        “直接替换”不是换掉参数 $w$，而是把同一个拟合模板的输入从状态 $s$ 扩成状态-动作对 $(s,a)$。
+      </p>
+      <div class="form">
+        <div class="fh"><span class="chip">状态值</span><span class="use">拟合 $v_\pi(s)$</span></div>
+        <div class="fb">$$\ell_t^v(w)=\frac12\big(y_t^v-\hat v(s_t,w)\big)^2,\qquad
+        w_{t+1}=w_t+\alpha_t\big(y_t^v-\hat v(s_t,w_t)\big)\nabla_w\hat v(s_t,w_t)$$</div>
+      </div>
+      <div class="form">
+        <div class="fh"><span class="chip">动作值</span><span class="use">拟合 $q_\pi(s,a)$ 或 $q_*(s,a)$</span></div>
+        <div class="fb">$$\ell_t^q(w)=\frac12\big(y_t^q-\hat q(s_t,a_t,w)\big)^2,\qquad
+        w_{t+1}=w_t+\alpha_t\big(y_t^q-\hat q(s_t,a_t,w_t)\big)\nabla_w\hat q(s_t,a_t,w_t)$$</div>
+      </div>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">
+        第 7 章表格 Sarsa 是直接改一个格子 $q(s_t,a_t)$；这里没有独立格子，只有共享参数 $w$，所以用梯度 $\nabla_w\hat q(s_t,a_t,w_t)$ 告诉参数该往哪里改。
+      </p>
+    </div>
+
+    <div class="formgrp">
       <div class="gt">状态值、动作值、DQN 的 target 对齐看</div>
       <table class="ex">
         <tr><th>算法</th><th>近似函数</th><th>TD target</th><th>更新方向</th><th>求解对象</th></tr>
@@ -271,6 +305,24 @@ $$</div>
         <tr><td><b>Q-learning-FA</b></td><td>$\hat q(s,a,w)$</td><td>$r+\gamma\max_{a'}\hat q(s',a',w)$</td><td>$\delta\nabla_w\hat q(s,a,w)$</td><td>$q_*$ 的近似</td></tr>
         <tr><td><b>DQN</b></td><td>神经网络 $\hat q(s,a,w)$</td><td class="hl">$r+\gamma\max_{a'}\hat q(s',a',w_T)$</td><td>mini-batch 最小化 $(y_T-\hat q(s,a,w))^2$</td><td>用深度网络近似 $q_*$</td></tr>
       </table>
+    </div>
+
+    <div class="formgrp">
+      <div class="gt">Q-learning-FA 和 DQN：公式同源，训练机制不同</div>
+      <p style="margin:4px 0;color:var(--muted);font-size:.9rem">
+        两者都在逼近 Bellman 最优方程，核心 target 都有 $r+\gamma\max_{a'}\hat q(s',a',\cdot)$。区别不是“谁取 max”，而是 DQN 把这个单步更新改造成了神经网络可训练的流程。
+      </p>
+      <table class="ex">
+        <tr><th>对比点</th><th>Q-learning-FA</th><th>DQN</th></tr>
+        <tr><td>定位</td><td>函数近似版 Q-learning 的基本公式</td><td class="hl">神经网络版 Q-learning-FA 加稳定训练机制</td></tr>
+        <tr><td>近似器</td><td>任意可微 $\hat q(s,a,w)$，常先用线性特征</td><td>神经网络 $\hat q(s,a,w)$</td></tr>
+        <tr><td>target 怎么算</td><td>$r+\gamma\max_{a'}\hat q(s',a',w_t)$，本步 semi-gradient 中把 target 当常数</td><td class="hl">$r+\gamma\max_{a'}\hat q(s',a',w_T)$，用 target network 固定一段时间</td></tr>
+        <tr><td>样本怎么用</td><td>通常来一条样本，在线更新一次</td><td class="hl">样本先进入 replay buffer，再随机抽 mini-batch 反复训练</td></tr>
+        <tr><td>为什么要升级</td><td>线性/小模型下单步更新相对直接</td><td>非线性网络、移动 target、时间相关样本叠在一起会不稳，所以需要 $w_T$ 和 replay</td></tr>
+      </table>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">
+        退化关系：若去掉 replay buffer、batch size 设为 1、再令 $w_T=w_t$，DQN 基本就退回到“神经网络版 Q-learning-FA”。
+      </p>
     </div>
 
     <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>神经网络版 Q-learning 为什么要特殊处理？</b></span></div>
@@ -429,6 +481,18 @@ $$</div>
       <div class="fb">$$\hat v(s,w)=\phi^T(s)w,\qquad \nabla_w\hat v(s,w)=\phi(s)$$</div>
     </div>
     <div class="form">
+      <div class="fh"><span class="chip">状态值母式</span><span class="use">先看成拟合 target $y_t$，再决定 $y_t$ 用 MC 还是 TD</span></div>
+      <div class="fb">$$\ell_t(w)=\frac12\big(y_t-\hat v(s_t,w)\big)^2,\qquad
+      w_{t+1}=w_t+\alpha_t\big(y_t-\hat v(s_t,w_t)\big)\nabla_w\hat v(s_t,w_t)$$</div>
+      <div class="fb">$$
+      y_t=
+      \begin{cases}
+      g_t, & \text{MC return}\\
+      r_{t+1}+\gamma\hat v(s_{t+1},w_t), & \text{TD target}
+      \end{cases}
+      $$</div>
+    </div>
+    <div class="form">
       <div class="fh"><span class="chip">状态值 TD-FA</span><span class="use">给定策略评估</span></div>
       <div class="fb">$$w_{t+1}=w_t+\alpha_t[r_{t+1}+\gamma\hat v(s_{t+1},w_t)-\hat v(s_t,w_t)]\nabla_w\hat v(s_t,w_t)$$</div>
     </div>
@@ -443,6 +507,18 @@ $$</div>
 \hat b_t=\sum_{k=0}^{t-1}r_{k+1}\phi(s_k),\quad
 w_t=\hat A_t^{-1}\hat b_t
 $$</div>
+    </div>
+    <div class="form">
+      <div class="fh"><span class="chip">动作值母式</span><span class="use">Sarsa / Q-learning 只是 $y_t^q$ 不同</span></div>
+      <div class="fb">$$\ell_t^q(w)=\frac12\big(y_t^q-\hat q(s_t,a_t,w)\big)^2$$</div>
+      <div class="fb">$$w_{t+1}=w_t+\alpha_t\big(y_t^q-\hat q(s_t,a_t,w_t)\big)\nabla_w\hat q(s_t,a_t,w_t)$$</div>
+      <div class="fb">$$
+      y_t^q=
+      \begin{cases}
+      r_{t+1}+\gamma\hat q(s_{t+1},a_{t+1},w_t), & \text{Sarsa target}\\
+      r_{t+1}+\gamma\max_{a'}\hat q(s_{t+1},a',w_t), & \text{Q-learning target}
+      \end{cases}
+      $$</div>
     </div>
     <div class="form">
       <div class="fh"><span class="chip">Sarsa-FA</span><span class="use">实际下一动作</span></div>

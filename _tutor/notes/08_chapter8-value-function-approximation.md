@@ -1805,6 +1805,94 @@ $$
 
 Sarsa 的函数近似版，本质上还是“用样本 TD 误差去推参数”，只是把状态值函数 $\hat v(s,w)$ 换成动作值函数 $\hat q(s,a,w)$。
 
+这里的“直接替换”容易误解：**不是把参数 $w$ 换掉**，而是把“要拟合的价值函数”从状态值换成动作值。
+
+8.2 的状态值函数近似是在做这个平方误差拟合：
+
+$$
+\ell_t^v(w)
+=
+\frac12\Big(y_t^v-\hat v(s_t,w)\Big)^2,
+$$
+
+所以梯度下降给出
+
+$$
+w_{t+1}
+=
+w_t
++
+\alpha_t
+\Big(y_t^v-\hat v(s_t,w_t)\Big)
+\nabla_w\hat v(s_t,w_t).
+$$
+
+如果做 TD，那么状态值标签用一步 TD target 近似：
+
+$$
+y_t^v
+=
+r_{t+1}+\gamma\hat v(s_{t+1},w_t).
+$$
+
+到 8.3.1，目标变成估计动作值 $q_\pi(s,a)$。这时不是更新表格里的某一个格子 $q(s,a)$，而是让一个带参数的函数 $\hat q(s,a,w)$ 去拟合 $q_\pi(s,a)$。于是同一个平方误差模板变成
+
+$$
+\ell_t^q(w)
+=
+\frac12\Big(y_t^q-\hat q(s_t,a_t,w)\Big)^2.
+$$
+
+对 $w$ 做梯度下降，就得到
+
+$$
+w_{t+1}
+=
+w_t
++
+\alpha_t
+\Big(y_t^q-\hat q(s_t,a_t,w_t)\Big)
+\nabla_w\hat q(s_t,a_t,w_t).
+$$
+
+Sarsa 的动作值 TD target 是
+
+$$
+y_t^q
+=
+r_{t+1}
++
+\gamma\hat q(s_{t+1},a_{t+1},w_t),
+$$
+
+代进去就得到下面的式 (8.35)。
+
+所以这一步可以“直接换”的真正原因是：两者都来自同一个模板
+
+$$
+\text{参数更新}
+=
+\text{旧参数}
++
+\alpha
+\times
+\text{拟合误差}
+\times
+\text{当前输出对参数的梯度}.
+$$
+
+差别只是：
+
+| 项目 | 状态值函数近似 | 动作值函数近似 |
+|---|---|---|
+| 拟合对象 | $v_\pi(s)$ | $q_\pi(s,a)$ |
+| 函数输入 | $s$ | $(s,a)$ |
+| 近似函数 | $\hat v(s,w)$ | $\hat q(s,a,w)$ |
+| 样本标签 | $y_t^v=r_{t+1}+\gamma\hat v(s_{t+1},w_t)$ | $y_t^q=r_{t+1}+\gamma\hat q(s_{t+1},a_{t+1},w_t)$ |
+| 更新方向 | $\nabla_w\hat v(s_t,w_t)$ | $\nabla_w\hat q(s_t,a_t,w_t)$ |
+
+和第 7 章表格 TD 的对应关系是：表格 Sarsa 直接改某个格子 $q(s_t,a_t)$；这里没有独立格子，只有共享参数 $w$，所以要通过 $\nabla_w\hat q(s_t,a_t,w_t)$ 来告诉参数“怎么改才能让当前 $(s_t,a_t)$ 的输出更接近 target”。
+
 如果
 
 $$
@@ -1962,6 +2050,67 @@ $$
 $$
 
 并用 Q-learning 的 Bellman optimality target 贝尔曼最优目标来训练它。
+
+#### Q-learning-FA 和 DQN 到底差在哪？
+
+一句话先定性：**DQN 是 Q-learning with function approximation 的神经网络版加稳定训练版**。
+
+所以你觉得它们很像是对的。两者的核心 target 都来自 Bellman optimality backup：
+
+$$
+r+\gamma\max_{a'}\hat q(s',a',\cdot).
+$$
+
+差别不在“要不要取 max”，而在“这个 $\hat q$ 用什么表示、target 怎么固定、样本怎么喂给模型”。
+
+8.3 的 Q-learning-FA 写成单步参数更新：
+
+$$
+w_{t+1}
+=
+w_t
++
+\alpha_t
+\Big[
+r_{t+1}
++
+\gamma\max_{a'}\hat q(s_{t+1},a',w_t)
+-
+\hat q(s_t,a_t,w_t)
+\Big]
+\nabla_w\hat q(s_t,a_t,w_t).
+$$
+
+它强调的是：给定一个可微函数近似器 $\hat q(s,a,w)$，每来一个样本，就沿着当前样本的 TD 误差方向推一下参数。这里的函数近似器可以是线性的，也可以是别的可微模型；书里 8.3 的例子主要还是线性特征。
+
+DQN 则把同一个想法改写成神经网络训练问题。它不再只看一个样本，而是从 replay buffer 经验池里抽一个 mini-batch，并用 target network 目标网络参数 $w_T$ 计算比较稳定的标签：
+
+$$
+L(w)
+=
+\frac1{|\mathcal B|}
+\sum_{(s_i,a_i,r_i,s'_i)\in\mathcal B}
+\Big[
+\underbrace{r_i+\gamma\max_{a'}\hat q(s'_i,a',w_T)}_{\text{固定一段时间的 target}}
+-
+\underbrace{\hat q(s_i,a_i,w)}_{\text{主网络当前输出}}
+\Big]^2.
+$$
+
+也就是说，Q-learning-FA 是“公式原型”，DQN 是“把这个原型拿去训练神经网络时的一整套做法”。
+
+| 对比点 | Q-learning-FA | DQN |
+|---|---|---|
+| 近似器 | 任意可微 $\hat q(s,a,w)$，书里常先讲线性特征 | 神经网络 $\hat q(s,a,w)$ |
+| 更新方式 | 通常按单个在线样本做 semi-gradient 更新 | 从 replay buffer 抽 mini-batch，用反向传播和优化器训练 |
+| target 参数 | 常写成同一个 $w_t$，单步内把 target 当常数 | 用目标网络 $w_T$ 算 target，隔一段时间才同步 |
+| 样本来源 | 可以边交互边更新 | 通常先存进经验池，再随机抽样重复使用 |
+| 解决重点 | 把表格 Q-learning 推广到参数函数 | 让非线性神经网络版 Q-learning 更稳定、更高效 |
+
+如果把 DQN 的 replay buffer 去掉、mini-batch 大小设成 1、target network 也去掉并令 $w_T=w_t$，它就几乎退回到“神经网络版的 Q-learning-FA”。反过来，从 Q-learning-FA 走到 DQN，新增的不是 Bellman target，而是两件稳定训练工具：
+
+- target network：别让标签随着主网络每一步剧烈移动；
+- experience replay：别让训练样本按时间强相关地连续喂进去，并且让旧经验能重复利用。
 
 ### 8.4.1 从 Q-learning 更新式到 DQN 目标函数
 

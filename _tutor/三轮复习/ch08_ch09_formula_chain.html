@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ch08-Ch09 公式复习 · 从价值近似到策略梯度</title>
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+<style>
+  :root{
+    --bg:#f6f8fa; --card:#fff; --ink:#1f2328; --muted:#59636e;
+    --accent:#0969da; --green:#1a7f37; --amber:#9a6700; --line:#d1d9e0;
+    --soft:#eef6ff; --soft2:#fff8c5;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+    line-height:1.72;}
+  .wrap{max-width:1040px;margin:0 auto;padding:30px 20px 90px;}
+  h1{font-size:1.65rem;margin:0 0 2px;line-height:1.35;}
+  h2{font-size:1.15rem;margin:30px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px;}
+  .sub{color:var(--muted);font-size:.9rem;margin:0 0 14px;}
+  .nav{display:flex;flex-wrap:wrap;gap:10px 16px;font-size:.88rem;margin:0 0 18px;}
+  .nav a,.reflink{color:var(--accent);text-decoration:none;}
+  .mainq{background:linear-gradient(0deg,#fff8c5,#fffdf0);border:1px solid #eac54f;
+    border-left:5px solid var(--amber);border-radius:8px;padding:14px 16px;margin:0 0 16px;}
+  .mainq b{color:#7a5200;}
+  .route{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:14px 0;}
+  .node{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:9px 8px;text-align:center;min-height:78px;}
+  .node b{display:block;color:var(--accent);font-size:.9rem;}
+  .node span{display:block;color:var(--muted);font-size:.78rem;margin-top:2px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 16px;margin:12px 0;box-shadow:0 1px 3px rgba(31,35,40,.06);}
+  .lead{font-weight:650;margin:0 0 8px;}
+  .formula{overflow-x:auto;overflow-y:hidden;background:#f6f8fa;border:1px solid #eef1f4;
+    border-radius:8px;padding:8px 12px;margin:8px 0;}
+  .chain{counter-reset:item;}
+  .step{position:relative;padding-left:42px;}
+  .step:before{counter-increment:item;content:counter(item);
+    position:absolute;left:0;top:16px;width:26px;height:26px;border-radius:50%;
+    background:var(--accent);color:#fff;font-weight:700;text-align:center;line-height:26px;font-size:.84rem;}
+  .nextline{background:#eef6ff;border:1px solid #cfe4ff;border-radius:8px;padding:8px 11px;margin:8px 0 0;}
+  .nextline b{color:var(--accent);}
+  table{border-collapse:collapse;width:100%;font-size:.9rem;margin:10px 0;}
+  th,td{border:1px solid var(--line);padding:7px 9px;vertical-align:top;}
+  th{background:#f0f3f6;text-align:left;}
+  td.hl{background:#fff8c5;font-weight:650;}
+  .insight{background:#dafbe1;border:1px solid #aceebb;border-left:5px solid var(--green);
+    border-radius:8px;padding:12px 15px;margin:18px 0;}
+  .insight .lab{color:var(--green);font-weight:700;}
+  .tags{margin-top:8px;}
+  .tag{display:inline-block;background:#ddf4ff;color:#0a4c8b;border-radius:18px;
+    padding:3px 11px;font-size:.84rem;margin:3px 5px 3px 0;}
+  @media (max-width:800px){
+    .route{grid-template-columns:repeat(2,1fr);}
+    .wrap{padding:22px 14px 70px;}
+    .step{padding-left:34px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Ch08-Ch09 · 关键公式链复习</h1>
+  <div class="sub">三轮复习 · 从 value function approximation 到 policy gradient · 价值参数 $w$ 与策略参数 $\theta$ 的分工</div>
+  <div class="nav">
+    <a href="./ch06_ch07_formula_chain.html">← Ch06-Ch07 公式总结</a>
+    <a href="../二轮总结/章节地图/ch08.html">Ch08 地图</a>
+    <a href="../二轮总结/章节地图/ch09.html">Ch09 地图</a>
+    <a href="../二轮总结/章节地图/ch10.html">Ch10 地图 →</a>
+  </div>
+
+  <div class="mainq">
+    <b>总主线：</b>Ch8 解决“状态太多，不能再存表格价值怎么办”：用参数 $w$ 表示 $\hat v(s,w),\hat q(s,a,w)$，再用样本 target 更新 $w$。Ch9 进一步问“能不能不先学价值再 greedy，而是直接学策略”：用参数 $\theta$ 表示 $\pi(a|s,\theta)$，定义整体表现 $J(\theta)$，再沿 $\nabla_\theta J$ 更新策略。
+  </div>
+
+  <div class="route">
+    <div class="node"><b>Ch7</b><span>表格 TD / Q-learning</span></div>
+    <div class="node"><b>Ch8.1</b><span>价值表 → 函数</span></div>
+    <div class="node"><b>Ch8.2</b><span>拟合 target 更新 $w$</span></div>
+    <div class="node"><b>Ch8.4</b><span>DQN 稳定训练</span></div>
+    <div class="node"><b>Ch9.1-9.3</b><span>策略函数与梯度</span></div>
+    <div class="node"><b>Ch9.4</b><span>REINFORCE 采样梯度</span></div>
+  </div>
+
+  <h2>一条公式链</h2>
+  <div class="chain">
+    <div class="card step">
+      <p class="lead">1. Ch8 的出发点：表格价值变成参数函数。</p>
+      <div class="formula">$$\hat v(s,w)\approx v_\pi(s),\qquad \hat q(s,a,w)\approx q_\pi(s,a)\ \text{或}\ q^*(s,a)$$</div>
+      <div class="formula">$$\text{linear value:}\qquad \hat v(s,w)=\phi^T(s)w,\qquad \nabla_w\hat v(s,w)=\phi(s)$$</div>
+      <div class="nextline"><b>接下一步：</b>表格法改一个格子；函数近似改共享参数 $w$，所以每次更新都会通过特征影响一片状态或动作。</div>
+    </div>
+
+    <div class="card step">
+      <p class="lead">2. 状态值函数近似：先像监督学习一样拟合 target。</p>
+      <div class="formula">$$\ell_t(w)=\frac12\big(y_t-\hat v(s_t,w)\big)^2$$</div>
+      <div class="formula">$$w_{t+1}=w_t+\alpha_t\big(y_t-\hat v(s_t,w_t)\big)\nabla_w\hat v(s_t,w_t)$$</div>
+      <div class="formula">$$
+y_t=
+\begin{cases}
+G_t, & \text{MC return}\\
+r_{t+1}+\gamma\hat v(s_{t+1},w_t), & \text{TD target}
+\end{cases}
+$$</div>
+      <div class="nextline"><b>读法：</b>真实标签 $v_\pi(s_t)$ 看不见，所以用 MC return 或 TD target 代替。</div>
+    </div>
+
+    <div class="card step">
+      <p class="lead">3. 线性 TD：TD target + 线性特征，得到 TD-Linear。</p>
+      <div class="formula">$$\delta_t=r_{t+1}+\gamma\hat v(s_{t+1},w_t)-\hat v(s_t,w_t)$$</div>
+      <div class="formula">$$w_{t+1}=w_t+\alpha_t\delta_t\nabla_w\hat v(s_t,w_t)$$</div>
+      <div class="formula">$$w_{t+1}=w_t+\alpha_t\big[r_{t+1}+\gamma\phi^T(s_{t+1})w_t-\phi^T(s_t)w_t\big]\phi(s_t)$$</div>
+      <div class="nextline"><b>接下一步：</b>TD-Linear 不是直接最小化真实误差，而是收敛到投影 Bellman 方程的固定点。</div>
+    </div>
+
+    <div class="card step">
+      <p class="lead">4. TD-Linear 的理论固定点：从随机更新到线性方程。</p>
+      <div class="formula">$$\mathbb E[\Delta w]\propto b-Aw,\qquad Aw=b,\qquad w^*=A^{-1}b$$</div>
+      <div class="formula">$$A=\Phi^TD(I-\gamma P_\pi)\Phi,\qquad b=\Phi^TDr_\pi$$</div>
+      <div class="formula">$$\Phi w=M T_\pi(\Phi w),\qquad J_{PBE}(w)=\|\hat v(w)-M T_\pi\hat v(w)\|_D^2$$</div>
+      <div class="nextline"><b>读法：</b>线性空间表达不了所有真实价值时，Bellman backup 后要投影回可表示空间；TD-Linear 找这个投影后的固定点。</div>
+    </div>
+
+    <div class="card step">
+      <p class="lead">5. LSTD：不一步步推参数，而是直接估方程。</p>
+      <div class="formula">$$\hat A_t=\sum_{k=0}^{t-1}\phi(s_k)\big(\phi(s_k)-\gamma\phi(s_{k+1})\big)^T$$</div>
+      <div class="formula">$$\hat b_t=\sum_{k=0}^{t-1}r_{k+1}\phi(s_k),\qquad w_t=\hat A_t^{-1}\hat b_t$$</div>
+      <div class="nextline"><b>读法：</b>LSTD 和 TD-Linear 的 target 没变，变的是求解方式：直接从样本估出 $A,b$ 再解线性方程。</div>
+    </div>
+
+    <div class="card step">
+      <p class="lead">6. 动作值函数近似：把输入从 $s$ 扩成 $(s,a)$。</p>
+      <div class="formula">$$\ell_t^q(w)=\frac12\big(y_t^q-\hat q(s_t,a_t,w)\big)^2$$</div>
+      <div class="formula">$$w_{t+1}=w_t+\alpha_t\big(y_t^q-\hat q(s_t,a_t,w_t)\big)\nabla_w\hat q(s_t,a_t,w_t)$$</div>
+      <div class="formula">$$
+y_t^q=
+\begin{cases}
+r_{t+1}+\gamma\hat q(s_{t+1},a_{t+1},w_t), & \text{Sarsa-FA}\\
+r_{t+1}+\gamma\max_{a'}\hat q(s_{t+1},a',w_t), & \text{Q-learning-FA}
+\end{cases}
+$$</div>
+      <div class="nextline"><b>关键：</b>这不是换掉 $w$，而是用同一个平方误差模板拟合动作值 target。</div>
+    </div>
+
+    <div class="card step">
+      <p class="lead">7. DQN：把 Q-learning-FA 变成神经网络训练流程。</p>
+      <div class="formula">$$y_T=r+\gamma\max_{a'}\hat q(s',a',w_T)$$</div>
+      <div class="formula">$$L_{\text{DQN}}(w)=\frac1B\sum_{i=1}^{B}\big(y_{T,i}-\hat q(s_i,a_i,w)\big)^2$$</div>
+      <div class="formula">$$w_T\leftarrow w\quad\text{every }C\text{ updates},\qquad (s,a,r,s')\sim\mathcal B$$</div>
+      <div class="nextline"><b>读法：</b>target network 固定标签，experience replay 打散时间相关性；DQN 的 loss 小不等于真实 value error 小。</div>
+    </div>
+
+    <div class="card step">
+      <p class="lead">8. Ch9 的转向：不只让价值函数参数化，策略本身也参数化。</p>
+      <div class="formula">$$\pi(a|s,\theta),\qquad \theta^*\in\arg\max_\theta J(\theta)$$</div>
+      <div class="formula">$$\theta_{t+1}=\theta_t+\alpha\nabla_\theta J(\theta_t)$$</div>
+      <div class="formula">$$\pi(a|s,\theta)=\frac{e^{h(s,a,\theta)}}{\sum_{a'}e^{h(s,a',\theta)}}$$</div>
+      <div class="nextline"><b>接下一步：</b>要更新 $\theta$，先要把“策略好不好”压成一个标量 $J(\theta)$。</div>
+    </div>
+
+    <div class="card step">
+      <p class="lead">9. 策略目标 $J(\theta)$：就是把状态价值按任务分布平均。</p>
+      <div class="formula">$$J(\theta)=\mathbb E_{\pi_\theta}\left[\sum_{t=0}^{\infty}\gamma^tR_{t+1}\right]$$</div>
+      <div class="formula">$$J(\theta)=\sum_s\rho(s)v_{\pi_\theta}(s)=\mathbb E_{S_0\sim\rho}[v_{\pi_\theta}(S_0)]$$</div>
+      <div class="formula">$$\bar v_\pi=\sum_s d(s)v_\pi(s),\qquad \bar r_\pi=\sum_s d_\pi(s)r_\pi(s),\qquad \bar r_\pi=(1-\gamma)\bar v_\pi$$</div>
+      <div class="nextline"><b>读法：</b>$v_\pi(s)$ 是指定起点的价值；$J(\theta)$ 是按任务起点或访问分布平均后的策略总分。</div>
+    </div>
+
+    <div class="card step">
+      <p class="lead">10. Policy gradient theorem：把长期目标梯度改写成可采样项。</p>
+      <div class="formula">$$\nabla_\theta J(\theta)=\sum_s\eta(s)\sum_a\nabla_\theta\pi(a|s,\theta)q_\pi(s,a)$$</div>
+      <div class="formula">$$\nabla_\theta\pi(a|s,\theta)=\pi(a|s,\theta)\nabla_\theta\ln\pi(a|s,\theta)$$</div>
+      <div class="formula">$$\nabla_\theta J(\theta)=\mathbb E_{S\sim\eta,A\sim\pi}\big[\nabla_\theta\ln\pi(A|S,\theta)q_\pi(S,A)\big]$$</div>
+      <div class="nextline"><b>读法：</b>哪个动作的 $q_\pi$ 高，就把它在该状态下的 log probability 往上推；$q_\pi$ 低或为负，就往下压。</div>
+    </div>
+
+    <div class="card step">
+      <p class="lead">11. REINFORCE：用完整回报估计 $q_\pi(s_t,a_t)$。</p>
+      <div class="formula">$$G_t=\sum_{k=t+1}^{T}\gamma^{k-t-1}r_k$$</div>
+      <div class="formula">$$q_\pi(s_t,a_t)\approx G_t$$</div>
+      <div class="formula">$$\theta\leftarrow\theta+\alpha G_t\nabla_\theta\ln\pi(a_t|s_t,\theta)$$</div>
+      <div class="nextline"><b>读法：</b>REINFORCE 是 on-policy Monte Carlo policy gradient：不自举，方差高；下一章 actor-critic 会用 critic 降方差。</div>
+    </div>
+  </div>
+
+  <h2>Ch8 关键公式完整表</h2>
+  <table>
+    <tr><th>主题</th><th>关键公式</th><th>一句话读法</th></tr>
+    <tr><td>真实价值误差</td><td>$$J_E(w)=\|\hat v(w)-v_\pi\|_D^2$$</td><td>最直观，但依赖未知真值 $v_\pi$。</td></tr>
+    <tr><td>状态值母式</td><td>$$w_{t+1}=w_t+\alpha_t(y_t-\hat v(s_t,w_t))\nabla_w\hat v(s_t,w_t)$$</td><td>函数近似就是拟合可采样 target。</td></tr>
+    <tr><td>TD-FA</td><td>$$w_{t+1}=w_t+\alpha_t[r_{t+1}+\gamma\hat v(s_{t+1},w_t)-\hat v(s_t,w_t)]\nabla_w\hat v(s_t,w_t)$$</td><td>用 TD target 拟合状态值。</td></tr>
+    <tr><td>线性价值</td><td>$$\hat v(s,w)=\phi^T(s)w,\qquad \nabla_w\hat v(s,w)=\phi(s)$$</td><td>特征和参数内积。</td></tr>
+    <tr><td>TD-Linear</td><td>$$w_{t+1}=w_t+\alpha_t[r_{t+1}+\gamma\phi^T(s_{t+1})w_t-\phi^T(s_t)w_t]\phi(s_t)$$</td><td>表格 TD 是 one-hot 特征的特例。</td></tr>
+    <tr><td>投影 Bellman 方程</td><td>$$\Phi w=M T_\pi(\Phi w),\qquad J_{PBE}(w)=\|\hat v(w)-M T_\pi\hat v(w)\|_D^2$$</td><td>TD-Linear 对应投影后的 Bellman 固定点。</td></tr>
+    <tr><td>线性固定点</td><td>$$A=\Phi^TD(I-\gamma P_\pi)\Phi,\quad b=\Phi^TDr_\pi,\quad w^*=A^{-1}b$$</td><td>平均更新方向为 $b-Aw$。</td></tr>
+    <tr><td>LSTD</td><td>$$\hat A_t=\sum_{k=0}^{t-1}\phi(s_k)(\phi(s_k)-\gamma\phi(s_{k+1}))^T,\quad \hat b_t=\sum_{k=0}^{t-1}r_{k+1}\phi(s_k),\quad w_t=\hat A_t^{-1}\hat b_t$$</td><td>样本效率高，但矩阵代价大。</td></tr>
+    <tr><td>Sarsa-FA</td><td>$$w_{t+1}=w_t+\alpha_t[r_{t+1}+\gamma\hat q(s_{t+1},a_{t+1},w_t)-\hat q(s_t,a_t,w_t)]\nabla_w\hat q(s_t,a_t,w_t)$$</td><td>动作值 on-policy 函数近似。</td></tr>
+    <tr><td>Q-learning-FA</td><td>$$w_{t+1}=w_t+\alpha_t[r_{t+1}+\gamma\max_{a'}\hat q(s_{t+1},a',w_t)-\hat q(s_t,a_t,w_t)]\nabla_w\hat q(s_t,a_t,w_t)$$</td><td>动作值最优 target；本步 semi-gradient。</td></tr>
+    <tr><td>DQN</td><td>$$y_T=r+\gamma\max_{a'}\hat q(s',a',w_T),\qquad \min_w\frac1B\sum_i(y_{T,i}-\hat q(s_i,a_i,w))^2$$</td><td>Q-learning-FA + 神经网络 + 目标网络 + 经验回放。</td></tr>
+  </table>
+
+  <h2>Ch9 关键公式完整表</h2>
+  <table>
+    <tr><th>主题</th><th>关键公式</th><th>一句话读法</th></tr>
+    <tr><td>策略函数</td><td>$$\pi(a|s,\theta),\qquad \theta^*\in\arg\max_\theta J(\theta)$$</td><td>直接学习“怎么行动”。</td></tr>
+    <tr><td>梯度上升</td><td>$$\theta_{t+1}=\theta_t+\alpha\nabla_\theta J(\theta_t)$$</td><td>第 6 章 SGD 是下降；这里最大化回报，所以是上升。</td></tr>
+    <tr><td>折扣回报目标</td><td>$$J(\theta)=\mathbb E_{\pi_\theta}\left[\sum_{t=0}^{\infty}\gamma^tR_{t+1}\right]=\sum_s\rho(s)v_{\pi_\theta}(s)$$</td><td>策略总分是状态值的初始分布平均。</td></tr>
+    <tr><td>平均状态价值</td><td>$$\bar v_\pi=\sum_s d(s)v_\pi(s)=d^Tv_\pi$$</td><td>按关心的状态分布加权。</td></tr>
+    <tr><td>平均奖励</td><td>$$\bar r_\pi=\sum_s d_\pi(s)r_\pi(s),\qquad r_\pi(s)=\sum_a\pi(a|s,\theta)r(s,a)$$</td><td>continuing task 常用。</td></tr>
+    <tr><td>平均奖励与平均价值</td><td>$$\bar r_\pi=(1-\gamma)\bar v_\pi$$</td><td>同一策略的两种指标可互相换算。</td></tr>
+    <tr><td>Log trick</td><td>$$\nabla_\theta\pi(a|s,\theta)=\pi(a|s,\theta)\nabla_\theta\ln\pi(a|s,\theta)$$</td><td>把“概率的梯度”变成“log 概率梯度”。</td></tr>
+    <tr><td>Policy gradient theorem</td><td>$$\nabla_\theta J(\theta)=\mathbb E_{S\sim\eta,A\sim\pi}\big[\nabla_\theta\ln\pi(A|S,\theta)q_\pi(S,A)\big]$$</td><td>策略梯度的核心形状。</td></tr>
+    <tr><td>Softmax policy</td><td>$$\pi(a|s,\theta)=\frac{e^{h(s,a,\theta)}}{\sum_{a'}e^{h(s,a',\theta)}}$$</td><td>保证动作概率非负且和为 1。</td></tr>
+    <tr><td>REINFORCE</td><td>$$\theta\leftarrow\theta+\alpha G_t\nabla_\theta\ln\pi(a_t|s_t,\theta),\qquad G_t=\sum_{k=t+1}^{T}\gamma^{k-t-1}r_k$$</td><td>用 MC return 替代 $q_\pi(s_t,a_t)$。</td></tr>
+    <tr><td>REINFORCE 展开读法</td><td>$$\nabla_\theta\ln\pi(a_t|s_t,\theta)=\frac{\nabla_\theta\pi(a_t|s_t,\theta)}{\pi(a_t|s_t,\theta)}$$</td><td>高回报动作会被提高概率；低回报动作被压低概率。</td></tr>
+  </table>
+
+  <h2>8 / 9 章对比：一个更新 $w$，一个更新 $\theta$</h2>
+  <table>
+    <tr><th>维度</th><th>Ch8 Value Function Approximation</th><th>Ch9 Policy Gradient</th></tr>
+    <tr><td>学习对象</td><td>$\hat v(s,w),\hat q(s,a,w)$</td><td>$\pi(a|s,\theta)$</td></tr>
+    <tr><td>参数含义</td><td>$w$ 控制价值函数输出</td><td>$\theta$ 控制动作概率</td></tr>
+    <tr><td>目标信号</td><td>MC return / TD target / DQN target</td><td>整体策略指标 $J(\theta)$ 的梯度</td></tr>
+    <tr><td>价值的角色</td><td class="hl">价值是被学习的主角</td><td class="hl">价值 $q_\pi$ 是更新策略的权重信号</td></tr>
+    <tr><td>典型更新</td><td>$w\leftarrow w+\alpha(\text{target}-\hat q)\nabla_w\hat q$</td><td>$\theta\leftarrow\theta+\alpha G_t\nabla_\theta\ln\pi(a_t|s_t,\theta)$</td></tr>
+    <tr><td>代表算法</td><td>TD-Linear, LSTD, Sarsa-FA, Q-learning-FA, DQN</td><td>Policy gradient theorem, REINFORCE</td></tr>
+    <tr><td>下启 Ch10</td><td>critic 可以继续学习价值</td><td>actor 继续更新策略</td></tr>
+  </table>
+
+  <h2>易混点速记</h2>
+  <table>
+    <tr><th>易混点</th><th>正确读法</th></tr>
+    <tr><td>Ch8 的 loss 为 0 是否等于价值准确？</td><td>不一定。DQN loss 只是在 replay buffer 样本上小，未覆盖状态动作仍可能错。</td></tr>
+    <tr><td>TD-Linear 是最小化真实价值误差吗？</td><td>不是直接最小化 $\|\hat v-v_\pi\|_D^2$，而是对应 projected Bellman fixed point。</td></tr>
+    <tr><td>Q-learning-FA 和 DQN 是什么关系？</td><td>DQN 是神经网络版 Q-learning-FA 加 target network 和 replay buffer。</td></tr>
+    <tr><td>$J(\theta)$ 和 $v_\pi(s)$ 有什么区别？</td><td>$v_\pi(s)$ 指定起点；$J(\theta)$ 是按初始状态分布或访问分布平均后的策略总分。</td></tr>
+    <tr><td>Policy gradient 是不是不用价值？</td><td>不是。梯度里仍有 $q_\pi(s,a)$；只是价值服务于更新策略，而不是先学价值再 greedy。</td></tr>
+    <tr><td>REINFORCE 和 TD/DQN target 差别？</td><td>REINFORCE 用完整后续回报 $G_t$，不自举，方差高；TD/DQN 用一步 bootstrap target。</td></tr>
+  </table>
+
+  <div class="insight">
+    <span class="lab">总洞见</span><br>
+    Ch8 把第 7 章的表格价值更新推广成参数更新：样本告诉价值函数该往哪里拟合。Ch9 把“学价值再导出策略”的路线往前推进一步：直接让策略带参数，并用价值 $q_\pi$ 作为每个动作的信用权重来更新策略。两章合起来看，就是从 <strong>value parameter $w$</strong> 走到 <strong>policy parameter $\theta$</strong>，也正好铺垫 Ch10 的 actor-critic：actor 学策略，critic 学价值。
+  </div>
+
+  <h2>公式标签速记</h2>
+  <div class="tags">
+    <span class="tag">function approximation</span><span class="tag">semi-gradient TD</span>
+    <span class="tag">TD-Linear</span><span class="tag">projected Bellman error</span>
+    <span class="tag">LSTD</span><span class="tag">Sarsa-FA</span>
+    <span class="tag">Q-learning-FA</span><span class="tag">DQN</span>
+    <span class="tag">target network</span><span class="tag">experience replay</span>
+    <span class="tag">metric $J(\theta)$</span><span class="tag">policy gradient theorem</span>
+    <span class="tag">log trick</span><span class="tag">REINFORCE</span>
+  </div>
+
+</div>
+</body>
+</html>

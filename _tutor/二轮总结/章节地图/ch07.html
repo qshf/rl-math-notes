@@ -101,8 +101,14 @@
       <div class="qhead"><span class="qnum">问题 1 · TD(0)</span>
         <span class="qtext">给定策略，状态值能不能一步样本就更新？</span></div>
       <div class="why"><span class="lab">思路</span><br>
-        Bellman equation 说 $v_\pi(s)$ 等于 $R_{t+1}+\gamma v_\pi(S_{t+1})$ 的期望。模型未知时算不了期望，但一步经验给出样本 $r_{t+1},s_{t+1}$，于是用 $r_{t+1}+\gamma v_t(s_{t+1})$ 当 TD target，把 $v_t(s_t)$ 往它那里拉。</div>
-      <div class="concl"><span class="lab">结论</span> $v_{t+1}(s_t)=v_t(s_t)+\alpha_t[\;r_{t+1}+\gamma v_t(s_{t+1})-v_t(s_t)\;]$；每步只更新访问到的 $s_t$</div>
+        Bellman equation 说 $v_\pi(s)$ 等于「一步奖励 + 下一状态价值」的<strong>期望</strong>：
+        <div class="fb">$$v_\pi(s)=\mathbb E_\pi\!\left[R_{t+1}+\gamma v_\pi(S_{t+1})\mid S_t=s\right].$$</div>
+        如果模型 $p,r$ 已知，可以把这个期望精确算出来；现在模型未知，只能看到一次真实转移样本 $(s_t,r_{t+1},s_{t+1})$。于是 TD 的本质就是：<strong>用这一次样本近似 Bellman 期望</strong>，并且把未知的真值 $v_\pi(s_{t+1})$ 暂时用当前估计 $v_t(s_{t+1})$ 代替：
+        <div class="fb">$$\underbrace{\mathbb E_\pi[R_{t+1}+\gamma v_\pi(S_{t+1})\mid S_t=s_t]}_{\text{Bellman 期望 target}}
+        \;\approx\;
+        \underbrace{r_{t+1}+\gamma v_t(s_{t+1})}_{\text{一步样本 TD target}}.$$</div>
+        所以 TD 不是凭空造了一个目标，而是把 Ch2 的 Bellman 期望、Ch5 的样本近似、Ch6 的增量更新合在一起：样本 target 比当前 $v_t(s_t)$ 高，就往上拉；低，就往下压。它最终要近似的不是这一次样本 target，而是给定策略的真实状态值 $v_\pi$，也就是 Bellman expectation equation 的固定点。</div>
+      <div class="concl"><span class="lab">结论</span> TD(0) 用一步样本 target 反复逼近 $v_\pi$：$\delta_t=r_{t+1}+\gamma v_t(s_{t+1})-v_t(s_t)$；$v_{t+1}(s_t)=v_t(s_t)+\alpha_t\delta_t$，每步只更新访问到的 $s_t$</div>
     </div>
 
     <div class="formgrp">
@@ -121,8 +127,14 @@
       <div class="qhead"><span class="qnum">问题 2 · Sarsa</span>
         <span class="qtext">把 TD 从状态值推广到动作值</span></div>
       <div class="why"><span class="lab">思路</span><br>
-        要改进策略，需要知道每个动作好坏，所以把 $v(s)$ 换成 $q(s,a)$。Sarsa 的 target 使用下一状态下<strong>实际采样出来的动作</strong> $a_{t+1}$，样本正好是 $(s_t,a_t,r_{t+1},s_{t+1},a_{t+1})$，因此它评估的是当前正在采样的策略。</div>
-      <div class="concl"><span class="lab">结论</span> Sarsa target：$r_{t+1}+\gamma q_t(s_{t+1},a_{t+1})$；on-policy，可接 $\epsilon$-greedy 做 GPI</div>
+        要改进策略，需要知道每个动作好坏，所以把 $v(s)$ 换成 $q(s,a)$。动作值也有自己的 Bellman 期望式：
+        <div class="fb">$$q_\pi(s,a)=\mathbb E_\pi\!\left[R_{t+1}+\gamma q_\pi(S_{t+1},A_{t+1})\mid S_t=s,A_t=a\right].$$</div>
+        Sarsa 的本质和 TD(0) 一样：<strong>用一次五元组样本近似这个期望</strong>。采样得到 $(s_t,a_t,r_{t+1},s_{t+1},a_{t+1})$ 后，就用
+        <div class="fb">$$\underbrace{\mathbb E_\pi[R_{t+1}+\gamma q_\pi(S_{t+1},A_{t+1})\mid s_t,a_t]}_{\text{动作值 Bellman 期望 target}}
+        \;\approx\;
+        \underbrace{r_{t+1}+\gamma q_t(s_{t+1},a_{t+1})}_{\text{Sarsa 一步样本 target}}.$$</div>
+        因为 $a_{t+1}$ 是当前行为策略实际采样出来的动作，所以 Sarsa 近似的是当前正在采样的策略 $\pi$ 的动作值 $q_\pi$，也就是 on-policy。</div>
+      <div class="concl"><span class="lab">结论</span> Sarsa 用五元组样本反复逼近 $q_\pi$：$\delta_t=r_{t+1}+\gamma q_t(s_{t+1},a_{t+1})-q_t(s_t,a_t)$；on-policy，可接 $\epsilon$-greedy 做 GPI</div>
     </div>
 
     <div class="bridge"><span class="ar">▼</span><span class="nq">新问题：<b>一步 TD 太短，MC 又太长，中间能不能调节？</b></span></div>
@@ -189,8 +201,14 @@ $$</div>
       <div class="qhead"><span class="qnum">问题 4 · Q-learning</span>
         <span class="qtext">把下一步实际动作换成下一状态最大动作</span></div>
       <div class="why"><span class="lab">思路</span><br>
-        Sarsa target 问“当前策略下一步实际选了什么”；Q-learning target 问“如果到下一状态后选当前估计最好的动作，会怎样”。因此它不需要 $a_{t+1}$，只需要 $s_{t+1}$ 后对所有候选动作 $a'$ 取最大。</div>
-      <div class="concl"><span class="lab">结论</span> Q-learning target：$r_{t+1}+\gamma\max_{a'}q_t(s_{t+1},a')$；求 Bellman optimality equation，天然 off-policy</div>
+        Sarsa 用样本近似的是当前策略的动作值 Bellman 期望；Q-learning 换成近似<strong>最优动作值</strong>的 Bellman optimality target：
+        <div class="fb">$$q^*(s,a)=\mathbb E\!\left[R_{t+1}+\gamma\max_{a'}q^*(S_{t+1},a')\mid S_t=s,A_t=a\right].$$</div>
+        模型未知时仍然算不了这个期望；一次经验只给出 $r_{t+1},s_{t+1}$。于是 Q-learning 也是同一个套路：<strong>用一次样本近似 Bellman target</strong>，只是下一状态不再用实际采样动作 $a_{t+1}$，而是用当前估计下的最大动作值：
+        <div class="fb">$$\underbrace{\mathbb E[R_{t+1}+\gamma\max_{a'}q^*(S_{t+1},a')\mid s_t,a_t]}_{\text{Bellman 最优 target}}
+        \;\approx\;
+        \underbrace{r_{t+1}+\gamma\max_{a'}q_t(s_{t+1},a')}_{\text{Q-learning 一步样本 target}}.$$</div>
+        所以 Sarsa target 问“当前策略下一步实际选了什么”；Q-learning target 问“如果到下一状态后选当前估计最好的动作，会怎样”。因此它不需要 $a_{t+1}$，只需要 $s_{t+1}$ 后对所有候选动作 $a'$ 取最大。</div>
+      <div class="concl"><span class="lab">结论</span> Q-learning 用一步样本反复逼近 $q^*$：$\delta_t=r_{t+1}+\gamma\max_{a'}q_t(s_{t+1},a')-q_t(s_t,a_t)$；求 Bellman optimality equation，天然 off-policy</div>
     </div>
 
     <div class="formgrp">
@@ -254,8 +272,16 @@ $$</div>
     <tr><td>on-policy</td><td>采样策略 $\pi_b$ 和学习目标策略 $\pi_T$ 是否相同？</td><td>Sarsa</td><td>用当前策略生成样本，也评估/改进它自己</td></tr>
     <tr><td>off-policy</td><td>能否用一个策略采样、学习另一个策略？</td><td>Q-learning</td><td>行为策略负责探索，目标策略可以 greedy</td></tr>
     <tr><td>online</td><td>样本一到就能更新吗？</td><td>TD、Sarsa、Q-learning</td><td>更新节奏问题</td></tr>
-    <tr><td>offline</td><td>是否等数据/episode 收集后再处理？</td><td>MC、离线 Q-learning</td><td>数据处理方式问题</td></tr>
+    <tr><td>offline</td><td>是否等数据/episode 收集后再处理？</td><td>MC、离线 Q-learning</td><td>先固定一批数据，再训练；学习时不再边采样边更新</td></tr>
   </table>
+  </div>
+
+  <div class="formgrp">
+    <div class="gt">离线 Q-learning 到底是什么？为什么叫 offline？</div>
+    <p style="margin:4px 0">普通 online Q-learning 是边和环境交互边更新：刚拿到一条经验 $(s_t,a_t,r_{t+1},s_{t+1})$，马上用它更新一次 $q(s_t,a_t)$。<strong>离线 Q-learning</strong> 则先把经验收集成一个固定数据集 $\mathcal D$，训练时只从 $\mathcal D$ 里取样本更新，不再向环境要新样本：</p>
+    <div class="fb">$$\mathcal D=\{(s_i,a_i,r_i,s'_i)\}_{i=1}^N,\qquad
+q(s_i,a_i)\leftarrow q(s_i,a_i)+\alpha\big[r_i+\gamma\max_{a'}q(s'_i,a')-q(s_i,a_i)\big].$$</div>
+    <p style="margin:6px 0 0;color:var(--muted);font-size:.88rem">所以 <strong>offline</strong> 说的是数据处理方式：数据先收集好，之后反复扫这批数据训练。<strong>off-policy</strong> 说的是策略关系：这些数据可以由别的行为策略 $\pi_b$ 产生，但更新目标仍然是 greedy/optimal 的 $q^*$。两者常一起出现，但不是同一个概念。</p>
   </div>
 
   <p style="margin:14px 0 2px">② <strong>动作符号</strong> 最容易看错：</p>

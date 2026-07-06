@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ch06-Ch07 公式复习 · 随机近似到 TD 控制</title>
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+<style>
+  :root{
+    --bg:#f6f8fa; --card:#fff; --ink:#1f2328; --muted:#59636e;
+    --accent:#0969da; --green:#1a7f37; --amber:#9a6700; --line:#d1d9e0;
+    --soft:#eef6ff; --soft2:#fff8c5;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+    line-height:1.72;}
+  .wrap{max-width:980px;margin:0 auto;padding:30px 20px 90px;}
+  h1{font-size:1.65rem;margin:0 0 2px;line-height:1.35;}
+  h2{font-size:1.15rem;margin:30px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px;}
+  .sub{color:var(--muted);font-size:.9rem;margin:0 0 14px;}
+  .nav{display:flex;flex-wrap:wrap;gap:10px 16px;font-size:.88rem;margin:0 0 18px;}
+  .nav a,.reflink{color:var(--accent);text-decoration:none;}
+  .mainq{background:linear-gradient(0deg,#fff8c5,#fffdf0);border:1px solid #eac54f;
+    border-left:5px solid var(--amber);border-radius:8px;padding:14px 16px;margin:0 0 16px;}
+  .mainq b{color:#7a5200;}
+  .route{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:14px 0;}
+  .node{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:9px 8px;text-align:center;min-height:76px;}
+  .node b{display:block;color:var(--accent);font-size:.9rem;}
+  .node span{display:block;color:var(--muted);font-size:.78rem;margin-top:2px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px 16px;margin:12px 0;box-shadow:0 1px 3px rgba(31,35,40,.06);}
+  .lead{font-weight:650;margin:0 0 8px;}
+  .formula{overflow-x:auto;overflow-y:hidden;background:#f6f8fa;border:1px solid #eef1f4;
+    border-radius:8px;padding:8px 12px;margin:8px 0;}
+  .chain{counter-reset:item;}
+  .step{position:relative;padding-left:42px;}
+  .step:before{counter-increment:item;content:counter(item);
+    position:absolute;left:0;top:16px;width:26px;height:26px;border-radius:50%;
+    background:var(--accent);color:#fff;font-weight:700;text-align:center;line-height:26px;font-size:.84rem;}
+  .nextline{background:#eef6ff;border:1px solid #cfe4ff;border-radius:8px;padding:8px 11px;margin:8px 0 0;}
+  .nextline b{color:var(--accent);}
+  table{border-collapse:collapse;width:100%;font-size:.91rem;margin:10px 0;}
+  th,td{border:1px solid var(--line);padding:7px 9px;vertical-align:top;}
+  th{background:#f0f3f6;text-align:left;}
+  td.hl{background:#fff8c5;font-weight:650;}
+  .insight{background:#dafbe1;border:1px solid #aceebb;border-left:5px solid var(--green);
+    border-radius:8px;padding:12px 15px;margin:18px 0;}
+  .insight .lab{color:var(--green);font-weight:700;}
+  .tags{margin-top:8px;}
+  .tag{display:inline-block;background:#ddf4ff;color:#0a4c8b;border-radius:18px;
+    padding:3px 11px;font-size:.84rem;margin:3px 5px 3px 0;}
+  @media (max-width:760px){
+    .route{grid-template-columns:repeat(2,1fr);}
+    .wrap{padding:22px 14px 70px;}
+    .step{padding-left:34px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Ch06-Ch07 · 关键公式链复习</h1>
+  <div class="sub">三轮复习 · 把随机近似和 TD 方法放在同一张图里 · 核心是“样本 target - 当前估计”</div>
+  <div class="nav">
+    <a href="./ch01_ch05_formula_chain.html">← Ch01-Ch05 公式总结</a>
+    <a href="../二轮总结/章节地图/ch06.html">Ch06 地图</a>
+    <a href="../二轮总结/章节地图/ch07.html">Ch07 地图</a>
+    <a href="../二轮总结/章节地图/ch08.html">Ch08 地图 →</a>
+  </div>
+
+  <div class="mainq">
+    <b>总主线：</b>Ch6 不是单独多学一个算法，而是在给 Ch7 的 TD、Sarsa、Q-learning 提供统一语言：真实 Bellman 期望看不见，就用一步样本 target 近似；真实固定点不能一步求出，就用随机近似把当前估计一点点往 target 拉。
+  </div>
+
+  <div class="route">
+    <div class="node"><b>Ch5 尾巴</b><span>样本估期望</span></div>
+    <div class="node"><b>Ch6</b><span>旧值 + 步长 × 修正量</span></div>
+    <div class="node"><b>TD(0)</b><span>状态值一步自举</span></div>
+    <div class="node"><b>Sarsa</b><span>动作值 on-policy</span></div>
+    <div class="node"><b>Q-learning</b><span>动作值最优 target</span></div>
+  </div>
+
+  <h2>一条公式链</h2>
+  <div class="chain">
+    <div class="card step">
+      <p class="lead">1. 从 MC 的样本平均出发：期望看不见，就拿样本平均。</p>
+      <div class="formula">$$\mu=\mathbb E[X],\qquad \bar x_k=\frac1k\sum_{i=1}^k x_i$$</div>
+      <div class="formula">$$\bar x_k=\bar x_{k-1}+\frac1k(x_k-\bar x_{k-1})$$</div>
+      <div class="nextline"><b>接下一步：</b>这个式子已经有 TD 的影子：旧估计被新样本 target 拉一下。</div>
+    </div>
+
+    <div class="card step">
+      <p class="lead">2. Ch6 把样本平均抽象成随机近似母式。</p>
+      <div class="formula">$$w_{k+1}=w_k+\alpha_k(x_k-w_k)$$</div>
+      <div class="formula">$$w_{k+1}=w_k-\alpha_k\underbrace{(w_k-x_k)}_{\hat g(w_k)}$$</div>
+      <div class="formula">$$\underbrace{w_k-x_k}_{\hat g(w_k)}
+      =
+      \underbrace{(w_k-\mathbb E[X])}_{g(w_k)}
+      +
+      \underbrace{(\mathbb E[X]-x_k)}_{\eta_k}$$</div>
+      <div class="nextline"><b>读法：</b>理想方向是 $g(w_k)=w_k-\mathbb E[X]$，但只能看到带噪样本方向 $\hat g(w_k)=w_k-x_k$。</div>
+    </div>
+
+    <div class="card step">
+      <p class="lead">3. Robbins-Monro：把“求固定点/求根”写成带噪迭代。</p>
+      <div class="formula">$$g(w)=0,\qquad w_{k+1}=w_k-\alpha_k g(w_k)$$</div>
+      <div class="formula">$$\hat g(w_k)=g(w_k)+\eta_k,\qquad w_{k+1}=w_k-\alpha_k\hat g(w_k)$$</div>
+      <div class="formula">$$\text{Robbins-Monro:}\qquad w_{k+1}=w_k-a_k\tilde g(w_k,\eta_k)$$</div>
+      <div class="formula">$$\sum_{k=1}^{\infty}\alpha_k=\infty,\qquad \sum_{k=1}^{\infty}\alpha_k^2<\infty$$</div>
+      <div class="nextline"><b>接下一步：</b>Bellman 方程也可以看成“当前值 = 某个 target”的固定点；TD 就是用样本 target 给出带噪方向。</div>
+    </div>
+
+    <div class="card step">
+      <p class="lead">4. SGD：把优化里的真实期望梯度换成单样本梯度。</p>
+      <div class="formula">$$J(w)=\mathbb E[f(w,X)],\qquad \nabla_w J(w)=\mathbb E[\nabla_w f(w,X)]$$</div>
+      <div class="formula">$$w_{k+1}=w_k-\alpha_k\nabla_w f(w_k,x_k)$$</div>
+      <div class="formula">$$
+\underbrace{\nabla_w f(w_k,x_k)}_{\hat g(w_k)}
+=
+\underbrace{\mathbb E[\nabla_w f(w_k,X)]}_{g(w_k)}
++
+\underbrace{\left(\nabla_w f(w_k,x_k)-\mathbb E[\nabla_w f(w_k,X)]\right)}_{\eta_k}
+$$</div>
+      <div class="nextline"><b>读法：</b>SGD 是 RM 用在 $\nabla_wJ(w)=0$ 上；均值估计也是 SGD 的特例，因为 $\nabla_w\frac12(w-X)^2=w-X$。</div>
+    </div>
+
+    <div class="card step">
+      <p class="lead">5. Dvoretzky：把收敛证明变成“误差递推”问题。</p>
+      <div class="formula">$$\Delta_{k+1}=(1-\alpha_k)\Delta_k+\beta_k\eta_k$$</div>
+      <div class="formula">$$\text{旧误差被 }(1-\alpha_k)\text{ 压小，噪声项 }\beta_k\eta_k\text{ 随步长变小}$$</div>
+      <div class="nextline"><b>定位：</b>Dvoretzky 不是新算法，而是证明工具。只要某个算法的误差能写成这个模板，就可以讨论误差是否趋近 0。</div>
+    </div>
+
+    <div class="card step">
+      <p class="lead">6. TD(0)：把 Bellman 期望 target 换成一步样本 target。</p>
+      <div class="formula">$$v_\pi(s)=\mathbb E_\pi[R_{t+1}+\gamma v_\pi(S_{t+1})\mid S_t=s]$$</div>
+      <div class="formula">$$\underbrace{\mathbb E_\pi[R_{t+1}+\gamma v_\pi(S_{t+1})\mid S_t=s_t]}_{\text{真实 Bellman 期望 target}}
+      \approx
+      \underbrace{r_{t+1}+\gamma v_t(s_{t+1})}_{\text{一步样本 TD target}}$$</div>
+      <div class="formula">$$\delta_t=r_{t+1}+\gamma v_t(s_{t+1})-v_t(s_t)$$</div>
+      <div class="formula">$$v_{t+1}(s_t)=v_t(s_t)+\alpha_t\delta_t$$</div>
+      <div class="nextline"><b>对应 Ch6：</b>$x_k$ 换成 TD target，$w_k$ 换成当前 $v_t(s_t)$，修正量就是 target - 当前估计。</div>
+    </div>
+
+    <div class="card step">
+      <p class="lead">7. Sarsa：把状态值 TD 推到动作值 TD。</p>
+      <div class="formula">$$q_\pi(s,a)=\mathbb E_\pi[R_{t+1}+\gamma q_\pi(S_{t+1},A_{t+1})\mid S_t=s,A_t=a]$$</div>
+      <div class="formula">$$\bar q_t^{\text{Sarsa}}=r_{t+1}+\gamma q_t(s_{t+1},a_{t+1})$$</div>
+      <div class="formula">$$q_{t+1}(s_t,a_t)=q_t(s_t,a_t)+\alpha_t[\bar q_t^{\text{Sarsa}}-q_t(s_t,a_t)]$$</div>
+      <div class="nextline"><b>关键：</b>$a_{t+1}$ 是当前策略实际采样出来的动作，所以 Sarsa 学的是当前采样策略自己的 $q_\pi$，是 on-policy。</div>
+    </div>
+
+    <div class="card step">
+      <p class="lead">8. n-step Sarsa：真实展开几步，再接估计尾巴。</p>
+      <div class="formula">$$\bar q_t^{(n)}
+      =
+      r_{t+1}
+      +\gamma r_{t+2}
+      +\cdots
+      +\gamma^{n-1}r_{t+n}
+      +\gamma^n q_t(s_{t+n},a_{t+n})$$</div>
+      <div class="formula">$$q_{t+1}(s_t,a_t)=q_t(s_t,a_t)+\alpha_t[\bar q_t^{(n)}-q_t(s_t,a_t)]$$</div>
+      <div class="nextline"><b>读法：</b>$n=1$ 是 Sarsa，$n\to\infty$ 接近 MC；它调的是 bias / variance 和更新延迟。</div>
+    </div>
+
+    <div class="card step">
+      <p class="lead">9. Expected Sarsa：不采下一动作，先把动作随机性平均掉。</p>
+      <div class="formula">$$\bar q_t^{\text{Expected}}
+      =
+      r_{t+1}+\gamma\sum_{a'}\pi(a'\mid s_{t+1})q_t(s_{t+1},a')$$</div>
+      <div class="formula">$$q_{t+1}(s_t,a_t)=q_t(s_t,a_t)+\alpha_t[\bar q_t^{\text{Expected}}-q_t(s_t,a_t)]$$</div>
+      <div class="nextline"><b>读法：</b>Sarsa 抽一个 $a_{t+1}$；Expected Sarsa 对所有 $a'$ 按策略概率加权，通常方差更低。</div>
+    </div>
+
+    <div class="card step">
+      <p class="lead">10. Q-learning：target 从“当前策略会怎样”换成“最优会怎样”。</p>
+      <div class="formula">$$q^*(s,a)=\mathbb E[R_{t+1}+\gamma\max_{a'}q^*(S_{t+1},a')\mid S_t=s,A_t=a]$$</div>
+      <div class="formula">$$\bar q_t^{\text{Q}}=r_{t+1}+\gamma\max_{a'}q_t(s_{t+1},a')$$</div>
+      <div class="formula">$$q_{t+1}(s_t,a_t)=q_t(s_t,a_t)+\alpha_t[\bar q_t^{\text{Q}}-q_t(s_t,a_t)]$$</div>
+      <div class="nextline"><b>关键：</b>Q-learning 不用实际采到的 $a_{t+1}$，而是枚举候选动作 $a'$ 后取最大；它的 target 指向 greedy 目标策略，所以本质 off-policy。</div>
+    </div>
+  </div>
+
+  <h2>Ch6 关键公式完整表</h2>
+  <table>
+    <tr><th>主题</th><th>关键公式</th><th>一句话读法</th></tr>
+    <tr>
+      <td>一般形式</td>
+      <td>
+        $$w_{k+1}=w_k-\alpha_k g(w_k)$$
+        $$\hat g(w_k)=g(w_k)+\eta_k,\qquad w_{k+1}=w_k-\alpha_k\hat g(w_k)$$
+      </td>
+      <td>理想时直接沿 $g$ 走；现实中只能沿带噪 $\hat g$ 走。</td>
+    </tr>
+    <tr>
+      <td>Robbins-Monro</td>
+      <td>$$w_{k+1}=w_k-a_k\tilde g(w_k,\eta_k)$$</td>
+      <td>最外层框架：用带噪观测求 $g(w)=0$。</td>
+    </tr>
+    <tr>
+      <td>步长条件</td>
+      <td>$$\sum_{k=1}^{\infty}a_k=\infty,\qquad \sum_{k=1}^{\infty}a_k^2<\infty$$</td>
+      <td>总路程要够长，噪声平方影响要可控。</td>
+    </tr>
+    <tr>
+      <td>增量均值</td>
+      <td>
+        $$w_{k+1}=w_k+\alpha_k(x_k-w_k)=w_k-\alpha_k(w_k-x_k)$$
+        $$\underbrace{w_k-x_k}_{\hat g(w_k)}
+        =
+        \underbrace{(w_k-\mathbb E[X])}_{g(w_k)}
+        +
+        \underbrace{(\mathbb E[X]-x_k)}_{\eta_k}$$
+      </td>
+      <td>样本把估计往自己方向拉；它也是带噪求根。</td>
+    </tr>
+    <tr>
+      <td>SGD</td>
+      <td>
+        $$w_{k+1}=w_k-\alpha_k\nabla_w f(w_k,x_k)$$
+        $$\underbrace{\nabla_w f(w_k,x_k)}_{\hat g(w_k)}
+        =
+        \underbrace{\mathbb E[\nabla_w f(w_k,X)]}_{g(w_k)}
+        +
+        \underbrace{\left(\nabla_w f(w_k,x_k)-\mathbb E[\nabla_w f(w_k,X)]\right)}_{\eta_k}$$
+      </td>
+      <td>单样本梯度替代真实期望梯度。</td>
+    </tr>
+    <tr>
+      <td>Dvoretzky</td>
+      <td>$$\Delta_{k+1}=(1-\alpha_k)\Delta_k+\beta_k\eta_k$$</td>
+      <td>证明工具：看误差如何被压缩、噪声如何变小。</td>
+    </tr>
+    <tr>
+      <td>BGD / SGD / MBGD</td>
+      <td>
+        $$\text{BGD: }w_{k+1}=w_k-\alpha_k\frac1n\sum_{i=1}^n\nabla f(w_k,x_i)$$
+        $$\text{SGD: }w_{k+1}=w_k-\alpha_k\nabla f(w_k,x_k)$$
+        $$\text{MBGD: }w_{k+1}=w_k-\alpha_k\frac1m\sum_{i\in B_k}\nabla f(w_k,x_i)$$
+      </td>
+      <td>每步用多少样本估梯度：全部、一个、小批量。</td>
+    </tr>
+  </table>
+
+  <h2>统一母式：Ch6 和 Ch7 其实是一句话</h2>
+  <table>
+    <tr><th>层次</th><th>母式</th><th>读法</th></tr>
+    <tr><td>Ch6 随机近似</td><td>$w_{k+1}=w_k-\alpha_k\hat g(w_k)$</td><td>用带噪方向修正参数</td></tr>
+    <tr><td>增量均值</td><td>$w_{k+1}=w_k+\alpha_k(x_k-w_k)$</td><td>把估计朝样本 $x_k$ 拉</td></tr>
+    <tr><td>TD / Sarsa / Q-learning</td><td class="hl">$\text{new}=\text{old}+\alpha(\text{target}-\text{old})$</td><td class="hl">把价值估计朝 Bellman 样本 target 拉</td></tr>
+  </table>
+
+  <h2>核心 target 对比</h2>
+  <table>
+    <tr><th>算法</th><th>target $\bar q_t$</th><th>近似哪个期望 / 方程</th><th>策略关系</th></tr>
+    <tr><td>TD(0)</td><td>$r_{t+1}+\gamma v_t(s_{t+1})$</td><td>$v_\pi$ 的 Bellman expectation equation</td><td>给定策略评估</td></tr>
+    <tr><td>Sarsa</td><td>$r_{t+1}+\gamma q_t(s_{t+1},a_{t+1})$</td><td>$q_\pi$ 的 Bellman expectation equation</td><td>on-policy</td></tr>
+    <tr><td>Expected Sarsa</td><td>$r_{t+1}+\gamma\sum_{a'}\pi(a'|s_{t+1})q_t(s_{t+1},a')$</td><td>$q_\pi$ 的 Bellman expectation equation</td><td>通常 on-policy</td></tr>
+    <tr><td>$n$-step Sarsa</td><td>$r_{t+1}+\cdots+\gamma^{n-1}r_{t+n}+\gamma^n q_t(s_{t+n},a_{t+n})$</td><td>$q_\pi$，介于 TD 和 MC 之间</td><td>on-policy</td></tr>
+    <tr><td>Q-learning</td><td>$r_{t+1}+\gamma\max_{a'}q_t(s_{t+1},a')$</td><td class="hl">$q^*$ 的 Bellman optimality equation</td><td class="hl">本质 off-policy</td></tr>
+  </table>
+
+  <h2>Ch7 关键公式完整表</h2>
+  <table>
+    <tr><th>主题</th><th>关键公式</th><th>一句话读法</th></tr>
+    <tr>
+      <td>TD(0) prediction</td>
+      <td>
+        $$\delta_t=r_{t+1}+\gamma v_t(s_{t+1})-v_t(s_t)$$
+        $$v_{t+1}(s_t)=v_t(s_t)+\alpha_t\delta_t$$
+      </td>
+      <td>用一步样本 target 逼近 $v_\pi$。</td>
+    </tr>
+    <tr>
+      <td>Sarsa</td>
+      <td>
+        $$\delta_t=r_{t+1}+\gamma q_t(s_{t+1},a_{t+1})-q_t(s_t,a_t)$$
+        $$q_{t+1}(s_t,a_t)=q_t(s_t,a_t)+\alpha_t\delta_t$$
+      </td>
+      <td>五元组 $(s_t,a_t,r_{t+1},s_{t+1},a_{t+1})$；on-policy。</td>
+    </tr>
+    <tr>
+      <td>Expected Sarsa</td>
+      <td>
+        $$\bar q_t=r_{t+1}+\gamma\sum_{a'}\pi(a'|s_{t+1})q_t(s_{t+1},a')$$
+        $$q_{t+1}(s_t,a_t)=q_t(s_t,a_t)+\alpha_t[\bar q_t-q_t(s_t,a_t)]$$
+      </td>
+      <td>把下一动作这层随机性先按策略平均掉。</td>
+    </tr>
+    <tr>
+      <td>$n$-step Sarsa</td>
+      <td>
+        $$\bar q_t^{(n)}=r_{t+1}+\gamma r_{t+2}+\cdots+\gamma^{n-1}r_{t+n}+\gamma^n q_t(s_{t+n},a_{t+n})$$
+        $$q_{t+1}(s_t,a_t)=q_t(s_t,a_t)+\alpha_t[\bar q_t^{(n)}-q_t(s_t,a_t)]$$
+      </td>
+      <td>$n=1$ 是 Sarsa，$n\to\infty$ 接近 MC。</td>
+    </tr>
+    <tr>
+      <td>Q-learning</td>
+      <td>
+        $$\delta_t=r_{t+1}+\gamma\max_{a'}q_t(s_{t+1},a')-q_t(s_t,a_t)$$
+        $$q_{t+1}(s_t,a_t)=q_t(s_t,a_t)+\alpha_t\delta_t$$
+      </td>
+      <td>直接朝 Bellman optimality target 靠；本质 off-policy。</td>
+    </tr>
+    <tr>
+      <td>$\epsilon$-greedy 改进</td>
+      <td>
+        $$\pi(a|s)=
+        \begin{cases}
+        1-\epsilon+\epsilon/|\mathcal A(s)|,& a=\arg\max_b q(s,b)\\
+        \epsilon/|\mathcal A(s)|,& \text{otherwise}
+        \end{cases}$$
+      </td>
+      <td>保留探索，同时偏向当前估计最好的动作。</td>
+    </tr>
+    <tr>
+      <td>离线 Q-learning</td>
+      <td>
+        $$\mathcal D=\{(s_i,a_i,r_i,s'_i)\}_{i=1}^N$$
+        $$q(s_i,a_i)\leftarrow q(s_i,a_i)+\alpha\big[r_i+\gamma\max_{a'}q(s'_i,a')-q(s_i,a_i)\big]$$
+      </td>
+      <td>offline 说的是先固定数据集再训练，不是 off-policy 的同义词。</td>
+    </tr>
+  </table>
+
+  <h2>易混点速记</h2>
+  <table>
+    <tr><th>易混点</th><th>正确读法</th></tr>
+    <tr><td>“样本 target” 是最终目标吗？</td><td>不是。单次 target 有噪声，反复更新后想逼近的是 Bellman 方程的固定点。</td></tr>
+    <tr><td>Sarsa 和 Q-learning 只差一个 max 吗？</td><td>公式上差在 target；含义上差在目标策略。Sarsa 学当前策略，Q-learning 朝最优 greedy 目标学。</td></tr>
+    <tr><td>on-policy / off-policy 等于 online / offline 吗？</td><td>不等于。前者问采样策略和目标策略关系，后者问数据是一边来一边用，还是先固定一批再训练。</td></tr>
+    <tr><td>Ch6 的步长条件为什么重要？</td><td>$\sum\alpha_k=\infty$ 保证能走到目标附近；$\sum\alpha_k^2<\infty$ 保证噪声累计影响被压下去。</td></tr>
+  </table>
+
+  <div class="insight">
+    <span class="lab">总洞见</span><br>
+    Ch6 负责回答“为什么可以用带噪样本一点点修正估计”，Ch7 负责回答“Bellman target 的样本版本到底长什么样”。把两章放一起看，TD、Sarsa、Q-learning 就不是一堆孤立公式，而是同一个随机近似母式下更换 target 的几个实例。
+  </div>
+
+  <h2>公式标签速记</h2>
+  <div class="tags">
+    <span class="tag">incremental mean</span><span class="tag">Robbins-Monro</span>
+    <span class="tag">noisy root finding</span><span class="tag">TD target</span>
+    <span class="tag">TD error</span><span class="tag">bootstrapping</span>
+    <span class="tag">Sarsa</span><span class="tag">Expected Sarsa</span>
+    <span class="tag">n-step Sarsa</span><span class="tag">Q-learning</span>
+    <span class="tag">on-policy / off-policy</span>
+  </div>
+
+</div>
+</body>
+</html>
