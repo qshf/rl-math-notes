@@ -448,17 +448,22 @@ $$</div>
     <div class="form">
       <div class="fh"><span class="chip">A2C / TD AC</span><span class="use">TD error 近似 advantage</span></div>
       <div class="fb">$$
-\delta_t=r_{t+1}+\gamma v(s_{t+1},w_t)-v(s_t,w_t),\qquad
-\theta_{t+1}=\theta_t+\alpha_\theta\delta_t\nabla_\theta\ln\pi(a_t|s_t,\theta_t)
+\begin{aligned}
+\delta_t&=r_{t+1}+\gamma v(s_{t+1},w_t)-v(s_t,w_t),\\
+\theta_{t+1}&=\theta_t+\alpha_\theta\delta_t\nabla_\theta\ln\pi(a_t|s_t,\theta_t),\\
+w_{t+1}&=w_t+\alpha_w\delta_t\nabla_w v(s_t,w_t).
+\end{aligned}
 $$</div>
     </div>
     <div class="form">
       <div class="fh"><span class="chip">Off-policy AC</span><span class="use">importance sampling 修正动作分布</span></div>
       <div class="fb">$$
-\theta_{t+1}
-=\theta_t+\alpha_\theta
-\frac{\pi(a_t|s_t,\theta_t)}{\beta(a_t|s_t)}
-\delta_t\nabla_\theta\ln\pi(a_t|s_t,\theta_t)
+\begin{aligned}
+c_t&=\frac{\pi(a_t|s_t,\theta_t)}{\beta(a_t|s_t)},\qquad
+\delta_t=r_{t+1}+\gamma v(s_{t+1},w_t)-v(s_t,w_t),\\
+\theta_{t+1}&=\theta_t+\alpha_\theta c_t\delta_t\nabla_\theta\ln\pi(a_t|s_t,\theta_t),\\
+w_{t+1}&=w_t+\alpha_w c_t\delta_t\nabla_w v(s_t,w_t).
+\end{aligned}
 $$</div>
     </div>
     <div class="form">

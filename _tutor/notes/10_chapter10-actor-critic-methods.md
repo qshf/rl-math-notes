@@ -2654,7 +2654,111 @@ $$
 
 ## 我的疑问与解答
 
-暂无。
+### Q1. Algorithm 10.1 为什么叫 QAC？
+
+QAC 是 **Q Actor-Critic** 的缩写。
+
+- **AC** 表示 actor-critic：actor 是策略 $\pi(a\mid s,\theta)$，负责采样动作并更新策略参数 $\theta$；critic 是价值估计器，负责评价 actor 选出的动作好不好。
+- **Q** 表示这里的 critic 学的是 action value 动作价值函数：
+
+$$
+q(s,a,w)\approx q_\pi(s,a).
+$$
+
+所以 QAC 的名字重点不是说它用了 Q-learning，而是说它用一个 $q(s,a,w)$ 形式的 critic 给 actor 提供评价信号。actor 更新式
+
+$$
+\theta_{t+1}
+=
+\theta_t+
+\alpha_\theta
+\nabla_\theta \ln \pi(a_t\mid s_t,\theta_t)
+q(s_t,a_t,w_t)
+$$
+
+可以读成：actor 问“我刚才在 $s_t$ 选了 $a_t$，以后要不要更常这样选？”critic 用 $q(s_t,a_t,w_t)$ 回答。
+
+⚠️ 易错点：QAC 里的 **Q 不是 Q-learning**。Algorithm 10.1 的 critic 更新是 Sarsa 式 on-policy TD：
+
+$$
+\delta_t
+=
+r_{t+1}
++
+\gamma q(s_{t+1},a_{t+1},w_t)
+-
+q(s_t,a_t,w_t),
+$$
+
+其中 $a_{t+1}$ 是按当前 actor 策略 $\pi(\cdot\mid s_{t+1},\theta_t)$ 采样出来的，而不是取 $\max_a q(s_{t+1},a,w_t)$。一句话记：**QAC = 用 Q 函数作为 critic 信号的 actor-critic；Q 指动作价值，不指 Q-learning。**
+
+### Q2. Algorithm 10.2 为什么叫 A2C / TD Actor-Critic？
+
+A2C 是 **Advantage Actor-Critic** 的缩写。这里的 **A** 表示 advantage 优势函数，不是 “A 的平方”。它想表达的不是“这个动作绝对有多好”，而是：
+
+> 这个动作相对于当前状态下的平均水平，好了多少？
+
+理想的 advantage 是
+
+$$
+A_\pi(s_t,a_t)
+=
+q_\pi(s_t,a_t)
+-
+v_\pi(s_t).
+$$
+
+如果 $A_\pi(s_t,a_t)>0$，说明动作 $a_t$ 比当前状态 $s_t$ 的平均表现更好，actor 应该更倾向于以后选它；如果 $A_\pi(s_t,a_t)<0$，说明它比平均水平差，actor 应该降低这类动作的概率。
+
+但 Algorithm 10.2 没有像 QAC 那样单独学习 $q(s,a,w)$，而是只学习 state value 状态价值函数：
+
+$$
+v(s,w)\approx v_\pi(s).
+$$
+
+于是算法用一步 TD error 来近似 advantage：
+
+$$
+\delta_t
+=
+r_{t+1}
++
+\gamma v(s_{t+1},w_t)
+-
+v(s_t,w_t).
+$$
+
+这个 $\delta_t$ 的读法是：真实看到的一步回报加下一状态价值，是否比 critic 原来对 $s_t$ 的预期更好。它正好扮演 advantage 信号：
+
+- $\delta_t>0$：结果比预期好，增加 $a_t$ 的概率；
+- $\delta_t<0$：结果比预期差，降低 $a_t$ 的概率；
+- $\delta_t\approx 0$：基本符合预期，策略不用大改。
+
+所以 actor 更新写成
+
+$$
+\theta_{t+1}
+=
+\theta_t
++
+\alpha_\theta
+\delta_t
+\nabla_\theta\ln\pi(a_t\mid s_t,\theta_t).
+$$
+
+截图里同时写 **TD Actor-Critic**，是从 critic 的估计方法命名：这个算法用 TD error $\delta_t$ 同时做两件事，一方面作为 actor 的 advantage 近似，另一方面作为 critic 更新 $v(s,w)$ 的误差信号：
+
+$$
+w_{t+1}
+=
+w_t
++
+\alpha_w
+\delta_t
+\nabla_w v(s_t,w_t).
+$$
+
+一句话记：**A2C = 用 advantage 信号更新 actor 的 actor-critic；在 Algorithm 10.2 里，这个 advantage 由 TD error $\delta_t$ 近似，所以也叫 TD Actor-Critic。**
 
 ---
 
